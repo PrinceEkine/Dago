@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
+  <title>Dago - Settings</title>
+  <link rel="stylesheet" href="pages.css" />
+</head>
+<body>
+  <div class="panel">
+    <h1>Settings</h1>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Tor routing</div>
+        <div class="setting-desc" id="tor-desc">Checking status…</div>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Tracker &amp; ad blocking</div>
+        <div class="setting-desc" id="adblock-desc">Loading…</div>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">History PIN</div>
+        <div class="setting-desc">Change or reset the PIN that guards your browsing history.</div>
+      </div>
+      <button id="reset-pin-btn" class="danger">Reset PIN</button>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Camera access</div>
+        <div class="setting-desc">Blocked everywhere. Dago has no video-calling mode by design - see the README.</div>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Version</div>
+        <div class="setting-desc" id="version-desc">-</div>
+      </div>
+    </div>
+
+    <p style="margin-top:24px">Dago is an early-stage, community-funded project. See the README for the roadmap and how to support development.</p>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>
