@@ -46,13 +46,14 @@ doesn't make you choose:
 | Tabbed browsing, address bar, navigation | Working |
 | Tor routing with per-tab isolated circuits + "New Identity" | Working (requires system Tor install - see below) |
 | Built-in tracker/ad blocking | Working (curated domain list) |
-| EasyList/EasyPrivacy subscriptions | Working (add any https:// filter list URL in Settings; domain-level rules only - see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)) |
+| EasyList/EasyPrivacy subscriptions | Working (add any https:// filter list URL in Settings - domain, path/wildcard, and cosmetic/element-hiding rules; see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's still not implemented) |
 | Fingerprint resistance (canvas/WebGL/timezone/UA) | Working, best-effort |
 | No-camera policy (video calls disabled everywhere) | Working |
 | Screensharing (screen-only, peer-to-peer, room code) | Working (needs a signaling server - one-command to self-host) |
 | Optional TURN relay for screensharing | Working (configure in Settings; "force relay" hides both peers' public IPs) |
 | PIN-gated, encrypted-at-rest history | Working |
-| Bookmarks, downloads, extensions | Not yet - see [`docs/ROADMAP.md`](docs/ROADMAP.md) |
+| Bookmarks and a download manager | Working |
+| Browser extension support | Not yet - see [`docs/ROADMAP.md`](docs/ROADMAP.md) |
 
 Full architecture write-up: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 What this alpha actually protects against (and what it doesn't):
@@ -92,7 +93,18 @@ rather than reinventing rendering, focusing its own engineering on the
 privacy layer described above. What's in this repo runs and does what the
 table above says, but it is **unaudited alpha software**: don't rely on it
 for high-stakes anonymity yet (use Tor Browser for that today), and expect
-rough edges.
+rough edges. See [`SECURITY.md`](SECURITY.md) for how to report issues and
+for an honest account of what an internal self-review has (and hasn't)
+caught so far - it's explicitly not a substitute for the independent audit
+this project still needs.
+
+CI (`.github/workflows/build.yml`) and Tor-binary-bundling groundwork
+(`scripts/fetch-tor-binaries.js`) exist in this repo, but neither is fully
+wired up yet: there are no code-signing certificates configured (that costs
+real money - see below), and no Tor binaries are bundled because this
+project's own dev environment has no network access to fetch and verify
+them. Builds today are unsigned, and onion routing still requires a system
+Tor install. `docs/RELEASING.md` and `docs/ROADMAP.md` cover what's left.
 
 ## Support Dago
 

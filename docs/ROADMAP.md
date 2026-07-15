@@ -22,18 +22,45 @@ the README).
       bucketing alongside the existing `screen.width`/`height` bucketing
 - [x] Optional TURN relay for screensharing (user-configured, encrypted at
       rest), with a "force relay" mode that hides both peers' public IPs
+- [x] Bookmarks (star toggle, bookmarks page) and a download manager
+      (auto-save with de-duplication, open/show-in-folder/cancel)
+- [x] Extended filter-list syntax: path/wildcard address rules and
+      cosmetic (element-hiding) rules, matched with a custom
+      backtracking-free scanner - not the full Adblock Plus rule set
+      (still no request-type options like `$third-party`, no raw `/regex/`
+      filters - see `src/main/adblock.js`'s doc comments for why)
+- [x] Tor-binary bundling *groundwork*: `scripts/fetch-tor-binaries.js` +
+      `resources/tor/manifest.json` + `tor-manager.js` preferring a bundled
+      binary. No binaries are actually bundled yet - this dev environment
+      has no network access to `dist.torproject.org` (confirmed blocked),
+      so a maintainer with real access and the ability to verify the Tor
+      Project's PGP signature has to run the fetch script at least once.
+      Still effectively a system-Tor requirement until that happens.
+- [x] CI build scaffolding (`.github/workflows/build.yml`,
+      `docs/RELEASING.md`) that produces unsigned Windows/macOS/Linux
+      installers and signs them automatically once a maintainer adds real
+      certificate secrets. No certificates exist in this project yet -
+      that's a real cost (~$99/yr Apple Developer Program alone), part of
+      the funding ask in the README.
+- [x] Internal security self-review pass - see [`SECURITY.md`](../SECURITY.md)
+      for what it found (including a real, pre-merge bypass of ad/tracker
+      blocking) and, importantly, why it is explicitly *not* a substitute
+      for the independent audit below.
 
 ## Next
 
-- [ ] Bundle a pinned, verified Tor binary per platform instead of requiring
-      a system install
-- [ ] Full Adblock Plus filter syntax (path/regex rules, cosmetic/element
-      hiding) - the current subscription parser only extracts domain-level
-      `||domain^` and `@@||domain^` rules, not the full EasyList rule set
-- [ ] Bookmarks, download manager, extension support
-- [ ] Reproducible builds + signed releases for Windows/macOS/Linux
-- [ ] Independent security audit of the Tor integration and
-      privacy-preload sandboxing
+- [ ] Actually bundle verified Tor binaries (the groundwork above exists;
+      someone with network access + a PGP verification step needs to run it)
+- [ ] Full Adblock Plus filter syntax: request-type options (`$third-party`,
+      `$script`, etc.), and a safe way to support at least some of what raw
+      `/regex/` filters express without reintroducing ReDoS risk
+- [ ] Browser extension support (a WebExtensions-compatible API surface) -
+      not attempted yet; this is a much larger undertaking than the other
+      "Next" items, closer in scope to a second browser feature
+- [ ] Real code signing once a maintainer funds/owns the certificates
+- [ ] Independent security audit by a paid third party - the self-review
+      above is real work, but it's still the same people who wrote the
+      code checking their own code
 
 ## Later
 

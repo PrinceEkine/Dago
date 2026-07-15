@@ -8,6 +8,7 @@
     "start": "electron .",
     "dev": "electron . --dev",
     "signaling-server": "node signaling-server/server.js",
+    "fetch-tor-binaries": "node scripts/fetch-tor-binaries.js",
     "dist": "electron-builder"
   },
   "author": "Dago Project Contributors",
@@ -24,10 +25,24 @@
     "productName": "Dago",
     "files": [
       "src/**/*",
+      "resources/**/*",
       "package.json"
     ],
     "directories": {
       "output": "dist"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.utilities",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Network"
     }
   }
 }

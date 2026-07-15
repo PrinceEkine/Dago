@@ -9,6 +9,22 @@ const NUM_ISOLATED_PORTS = 6;
 const SOCKS_BASE_PORT = 19050;
 const CONTROL_PORT = 19151;
 
+/**
+ * A bundled binary (fetched + sha256-verified by scripts/fetch-tor-binaries.js
+ * - see that file and resources/tor/manifest.json) is preferred over a
+ * system install so Dago doesn't depend on the user having installed Tor
+ * separately. Nothing is bundled by default in this repo; this just checks
+ * whether a maintainer's build pipeline has populated
+ * resources/tor/bin/<platform>-<arch>/tor(.exe) - if not, this falls back to
+ * whatever `tor` resolves to on PATH, same as before this existed.
+ */
+function bundledTorPath() {
+  const platformKey = `${process.platform}-${process.arch}`;
+  const binaryName = process.platform === 'win32' ? 'tor.exe' : 'tor';
+  const candidate = path.join(__dirname, '..', '..', 'resources', 'tor', 'bin', platformKey, binaryName);
+  return fs.existsSync(candidate) ? candidate : null;
+}
+
 class TorManager {
   constructor(userDataDir) {
     this.userDataDir = userDataDir;
@@ -20,12 +36,13 @@ class TorManager {
     this.ports = [];
     for (let i = 0; i < NUM_ISOLATED_PORTS; i++) this.ports.push(SOCKS_BASE_PORT + i);
     this.nextPortIndex = 0;
+    this.torBinary = bundledTorPath() || 'tor';
   }
 
-  /** Returns true if a `tor` binary is reachable on PATH. */
+  /** Returns true if a tor binary (bundled or on PATH) is usable. */
   async isTorInstalled() {
     return new Promise((resolve) => {
-      const probe = spawn('tor', ['--version']);
+      const probe = spawn(this.torBinary, ['--version']);
       let ok = false;
       probe.on('error', () => resolve(false));
       probe.stdout.on('data', () => { ok = true; });
@@ -62,7 +79,7 @@ class TorManager {
     this._writeTorrc();
 
     return new Promise((resolve) => {
-      this.process = spawn('tor', ['-f', this.torrcPath]);
+      this.process = spawn(this.torBinary, ['-f', this.torrcPath]);
       let settled = false;
 
       const onData = (buf) => {

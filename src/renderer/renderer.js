@@ -1,7 +1,7 @@
 'use strict';
 
 const NEW_TAB_URL = 'new-tab.html';
-const DAGO_PAGES = ['history', 'settings', 'screenshare'];
+const DAGO_PAGES = ['history', 'settings', 'screenshare', 'bookmarks', 'downloads'];
 
 const tabsEl = document.getElementById('tabs');
 const webviewHost = document.getElementById('webview-host');
@@ -10,6 +10,7 @@ const backBtn = document.getElementById('back-btn');
 const forwardBtn = document.getElementById('forward-btn');
 const reloadBtn = document.getElementById('reload-btn');
 const newIdentityBtn = document.getElementById('new-identity-btn');
+const bookmarkBtn = document.getElementById('bookmark-btn');
 const torStatusEl = document.getElementById('tor-status');
 const adblockStatusEl = document.getElementById('adblock-status');
 
@@ -22,7 +23,7 @@ function parseAddressInput(input) {
   if (!trimmed) return NEW_TAB_URL;
 
   const dagoMatch = trimmed.match(/^dago:\/\/(\w+)/);
-  if (dagoMatch) return { dagoPage: dagoMatch[1] };
+  if (dagoMatch && DAGO_PAGES.includes(dagoMatch[1])) return { dagoPage: dagoMatch[1] };
 
   const looksLikeUrl = /^https?:\/\//i.test(trimmed) || (/^[\w-]+(\.[\w-]+)+/.test(trimmed) && !trimmed.includes(' '));
   if (looksLikeUrl) {
@@ -58,7 +59,10 @@ async function createTab(initialUrl) {
 
   webview.addEventListener('did-navigate', (e) => {
     tab.url = e.url;
-    if (tab.id === activeTabId) addressBar.value = e.url;
+    if (tab.id === activeTabId) {
+      addressBar.value = e.url;
+      updateBookmarkButton();
+    }
     window.dago.history.record(e.url, tab.title);
     updateNavButtons();
   });
@@ -97,7 +101,20 @@ function activateTab(id) {
   if (tab) {
     addressBar.value = tab.url === NEW_TAB_URL ? '' : tab.url;
     updateNavButtons();
+    updateBookmarkButton();
   }
+}
+
+async function updateBookmarkButton() {
+  const tab = getActiveTab();
+  if (!tab || tab.url === NEW_TAB_URL) {
+    bookmarkBtn.innerHTML = '&#9734;';
+    bookmarkBtn.classList.remove('active');
+    return;
+  }
+  const bookmarked = await window.dago.bookmarks.isBookmarked(tab.url);
+  bookmarkBtn.innerHTML = bookmarked ? '&#9733;' : '&#9734;';
+  bookmarkBtn.classList.toggle('active', bookmarked);
 }
 
 function closeTab(id) {
@@ -172,6 +189,17 @@ newIdentityBtn.addEventListener('click', async () => {
 document.getElementById('history-btn').addEventListener('click', () => window.dago.windows.open('history'));
 document.getElementById('settings-btn').addEventListener('click', () => window.dago.windows.open('settings'));
 document.getElementById('screenshare-btn').addEventListener('click', () => window.dago.windows.open('screenshare'));
+document.getElementById('bookmarks-btn').addEventListener('click', () => window.dago.windows.open('bookmarks'));
+document.getElementById('downloads-btn').addEventListener('click', () => window.dago.windows.open('downloads'));
+
+bookmarkBtn.addEventListener('click', async () => {
+  const tab = getActiveTab();
+  if (!tab || tab.url === NEW_TAB_URL) return;
+  const bookmarked = await window.dago.bookmarks.isBookmarked(tab.url);
+  if (bookmarked) await window.dago.bookmarks.removeByUrl(tab.url);
+  else await window.dago.bookmarks.add(tab.url, tab.title);
+  updateBookmarkButton();
+});
 
 // --- Status bar ---
 

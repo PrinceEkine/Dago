@@ -2,7 +2,7 @@
 
 const { ipcMain, session, app } = require('electron');
 const crypto = require('crypto');
-const { attachAdblock, BLOCKED_DOMAINS } = require('./adblock');
+const { attachAdblock, getCosmeticRulesForHost, BLOCKED_DOMAINS } = require('./adblock');
 
 const NORMALIZED_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
@@ -15,6 +15,8 @@ function registerIpc({
   historyStore,
   filterListStore,
   webrtcRelayStore,
+  bookmarkStore,
+  downloadManager,
   desktopCapturer,
   setPendingScreenShareSource,
   openUtilityWindow,
@@ -32,6 +34,7 @@ function registerIpc({
     }
 
     attachAdblock(ses, { enabled: true });
+    downloadManager.attachToSession(ses);
 
     ses.webRequest.onBeforeSendHeaders((details, callback) => {
       details.requestHeaders['User-Agent'] = NORMALIZED_USER_AGENT;
@@ -51,6 +54,10 @@ function registerIpc({
 
   ipcMain.handle('adblock:stats', () => ({ domainCount: BLOCKED_DOMAINS.length }));
 
+  // Called from privacy-preload.js (running inside tab webviews) to fetch
+  // cosmetic/element-hiding CSS selectors for the page's own hostname.
+  ipcMain.handle('adblock:cosmetic-rules-for-host', (event, hostname) => getCosmeticRulesForHost(hostname));
+
   // --- Filter list subscriptions (EasyList/EasyPrivacy-style, user-controlled) ---
 
   ipcMain.handle('filterlists:list', () => filterListStore.list());
@@ -68,11 +75,27 @@ function registerIpc({
   ipcMain.handle('app:get-version', () => app.getVersion());
 
   ipcMain.handle('windows:open', (event, pageName) => {
-    const allowed = ['history', 'settings', 'screenshare'];
+    const allowed = ['history', 'settings', 'screenshare', 'bookmarks', 'downloads'];
     if (!allowed.includes(pageName)) return { ok: false, reason: 'unknown-page' };
     openUtilityWindow(pageName);
     return { ok: true };
   });
+
+  // --- Bookmarks (not access-controlled, unlike history) ---
+
+  ipcMain.handle('bookmarks:list', () => bookmarkStore.list());
+  ipcMain.handle('bookmarks:is-bookmarked', (event, url) => bookmarkStore.isBookmarked(url));
+  ipcMain.handle('bookmarks:add', (event, { url, title }) => bookmarkStore.add(url, title));
+  ipcMain.handle('bookmarks:remove-by-url', (event, url) => bookmarkStore.removeByUrl(url));
+  ipcMain.handle('bookmarks:remove-by-id', (event, id) => bookmarkStore.removeById(id));
+
+  // --- Downloads ---
+
+  ipcMain.handle('downloads:list', () => downloadManager.list());
+  ipcMain.handle('downloads:cancel', (event, id) => downloadManager.cancel(id));
+  ipcMain.handle('downloads:remove', (event, id) => downloadManager.remove(id));
+  ipcMain.handle('downloads:open-file', (event, id) => downloadManager.openFile(id));
+  ipcMain.handle('downloads:show-in-folder', (event, id) => downloadManager.showInFolder(id));
 
   // --- History (PIN-gated viewing; logging always on, encrypted at rest) ---
 

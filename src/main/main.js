@@ -8,6 +8,8 @@ const { PinStore } = require('./pin-store');
 const { HistoryStore } = require('./history-store');
 const { FilterListStore } = require('./filter-list-store');
 const { WebrtcRelayStore } = require('./webrtc-relay-store');
+const { BookmarkStore } = require('./bookmark-store');
+const { DownloadManager } = require('./download-manager');
 const { registerIpc } = require('./ipc');
 
 let mainWindow;
@@ -66,6 +68,11 @@ function createWindow() {
     webPreferences.nodeIntegration = false;
     webPreferences.contextIsolation = false;
     webPreferences.webSecurity = true;
+    // Explicitly off (not just relying on default) so the preload script can
+    // require('electron').ipcRenderer to fetch cosmetic-hiding rules for the
+    // page's hostname - sandboxed preloads only get a much more restricted
+    // require.
+    webPreferences.sandbox = false;
   });
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
@@ -94,6 +101,9 @@ app.whenReady().then(async () => {
   const historyStore = new HistoryStore(userDataDir, safeStorage);
   const filterListStore = new FilterListStore(userDataDir);
   const webrtcRelayStore = new WebrtcRelayStore(userDataDir, safeStorage);
+  const bookmarkStore = new BookmarkStore(userDataDir);
+  const downloadManager = new DownloadManager();
+  downloadManager.attachToSession(session.defaultSession);
 
   session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
     if (!pendingScreenShareSourceId) {
@@ -115,6 +125,8 @@ app.whenReady().then(async () => {
     historyStore,
     filterListStore,
     webrtcRelayStore,
+    bookmarkStore,
+    downloadManager,
     desktopCapturer,
     setPendingScreenShareSource,
     openUtilityWindow,
