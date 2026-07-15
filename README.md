@@ -117,10 +117,9 @@ that's private by default *and* still pleasant to use, here's how to help:
   the highest-leverage help right now.
 - **Fund development** - development time, infrastructure (build servers,
   code signing certificates), and a future independent security audit all
-  cost money that a volunteer effort can't easily cover alone. If your
-  organization or you personally would like to sponsor Dago's development,
-  please open an issue or reach out via the repository - we're setting up
-  GitHub Sponsors / Open Collective and will link them here once live.
+  cost money that a volunteer effort can't easily cover alone. You can
+  sponsor Dago directly via
+  [GitHub Sponsors](https://github.com/sponsors/PrinceEkine).
 - **Spread the word** - star the repo, share it with people who care about
   privacy, and file issues for bugs or missing features.
 
