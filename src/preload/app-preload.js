@@ -58,4 +58,20 @@ contextBridge.exposeInMainWorld('dago', {
     getRelayConfig: () => ipcRenderer.invoke('webrtc:get-relay-config'),
     setRelayConfig: (config) => ipcRenderer.invoke('webrtc:set-relay-config', config),
   },
+
+  bookmarks: {
+    list: () => ipcRenderer.invoke('bookmarks:list'),
+    isBookmarked: (url) => ipcRenderer.invoke('bookmarks:is-bookmarked', url),
+    add: (url, title) => ipcRenderer.invoke('bookmarks:add', { url, title }),
+    removeByUrl: (url) => ipcRenderer.invoke('bookmarks:remove-by-url', url),
+    removeById: (id) => ipcRenderer.invoke('bookmarks:remove-by-id', id),
+  },
+
+  downloads: {
+    list: () => ipcRenderer.invoke('downloads:list'),
+    cancel: (id) => ipcRenderer.invoke('downloads:cancel', id),
+    remove: (id) => ipcRenderer.invoke('downloads:remove', id),
+    openFile: (id) => ipcRenderer.invoke('downloads:open-file', id),
+    showInFolder: (id) => ipcRenderer.invoke('downloads:show-in-folder', id),
+  },
 });

@@ -1,0 +1,30 @@
+{
+  "_readme": [
+    "This file intentionally ships with empty url/sha256 placeholders.",
+    "scripts/fetch-tor-binaries.js refuses to download anything until a",
+    "maintainer fills them in - it will not silently skip verification.",
+    "",
+    "How to fill this in safely:",
+    "1. Go to https://www.torproject.org/download/tor/ and find the current",
+    "   'Tor Expert Bundle' release for each platform.",
+    "2. Verify the release against the Tor Project's PGP signature per",
+    "   https://support.torproject.org/little-t-tor/verifying-signatures/ -",
+    "   do not skip this; a sha256 alone only proves the file wasn't",
+    "   corrupted in transit, not that it's the real Tor Project release.",
+    "3. Only after verifying the signature yourself, paste the resulting",
+    "   sha256 (of the exact file at that url) into the matching entry below.",
+    "4. Bump 'version' to match the release you verified.",
+    "",
+    "This groundwork exists because this project's own dev sandbox has no",
+    "network access to dist.torproject.org (confirmed blocked by egress",
+    "policy) - a maintainer with real network access has to do the above by",
+    "hand at least once. See docs/ROADMAP.md."
+  ],
+  "version": "PLACEHOLDER",
+  "platforms": {
+    "linux-x64": { "url": "", "sha256": "" },
+    "darwin-x64": { "url": "", "sha256": "" },
+    "darwin-arm64": { "url": "", "sha256": "" },
+    "win32-x64": { "url": "", "sha256": "" }
+  }
+}

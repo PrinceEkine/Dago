@@ -6,3 +6,4 @@ build/Output/
 userdata/
 *.pin
 .env
+resources/tor/bin/

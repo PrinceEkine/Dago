@@ -198,4 +198,27 @@
     safeDefine(window, 'innerWidth', () => bucket(origInnerWidth, 100));
     safeDefine(window, 'innerHeight', () => bucket(origInnerHeight, 100));
   } catch (err) { /* non-fatal */ }
+
+  // --- Cosmetic/element-hiding rules from enabled filter-list subscriptions ---
+  // Asks the main process for this hostname's CSS-hiding selectors (see
+  // filter-list-store.js's cosmeticRules) and injects them as a <style> tag.
+  // Best-effort: a brief flash of the hidden element before the stylesheet
+  // attaches is possible, same tradeoff cosmetic filtering makes elsewhere.
+  try {
+    const { ipcRenderer } = require('electron');
+    const applyCosmeticHiding = async () => {
+      try {
+        const selectors = await ipcRenderer.invoke('adblock:cosmetic-rules-for-host', location.hostname);
+        if (!selectors || selectors.length === 0) return;
+        const style = document.createElement('style');
+        style.textContent = selectors.map((s) => `${s}{display:none!important}`).join('\n');
+        (document.head || document.documentElement).appendChild(style);
+      } catch (err) { /* non-fatal */ }
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyCosmeticHiding, { once: true });
+    } else {
+      applyCosmeticHiding();
+    }
+  } catch (err) { /* non-fatal */ }
 })();

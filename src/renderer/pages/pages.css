@@ -61,13 +61,13 @@ button.primary { background: #3b4261; color: #7aa2f7; }
   justify-content: space-between;
 }
 
-#history-list, #source-list {
+#history-list, #source-list, #bookmark-list, #download-list {
   list-style: none;
   margin: 16px 0 0 0;
   padding: 0;
 }
 
-#history-list li {
+#history-list li, #bookmark-list li, #download-list li {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -76,11 +76,11 @@ button.primary { background: #3b4261; color: #7aa2f7; }
   font-size: 13px;
 }
 
-#history-list .entry-title { color: #c0caf5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#history-list .entry-url { color: #565f89; font-size: 11px; }
-#history-list .entry-time { color: #565f89; font-size: 11px; white-space: nowrap; }
-#history-list .entry-remove { cursor: pointer; color: #565f89; }
-#history-list .entry-remove:hover { color: #f7768e; }
+#history-list .entry-title, #bookmark-list .entry-title, #download-list .entry-title { color: #c0caf5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#history-list .entry-url, #bookmark-list .entry-url, #download-list .entry-url { color: #565f89; font-size: 11px; }
+#history-list .entry-time, #bookmark-list .entry-time, #download-list .entry-time { color: #565f89; font-size: 11px; white-space: nowrap; }
+#history-list .entry-remove, #bookmark-list .entry-remove, #download-list .entry-remove { cursor: pointer; color: #565f89; }
+#history-list .entry-remove:hover, #bookmark-list .entry-remove:hover, #download-list .entry-remove:hover { color: #f7768e; }
 
 .setting-row {
   display: flex;
