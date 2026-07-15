@@ -51,6 +51,26 @@ function randomRoomCode() {
   return code;
 }
 
+// Without a TURN server, screensharing connects directly peer-to-peer via
+// STUN alone, which reveals both peers' public IP addresses to each other -
+// inherent to how P2P WebRTC works, not a Dago-specific leak. Configuring a
+// TURN relay in Settings routes media through it instead; "force relay"
+// (iceTransportPolicy: 'relay') refuses to negotiate direct candidates at
+// all, so a peer only ever learns the TURN server's address.
+async function buildRtcConfig() {
+  const iceServers = [...STUN_SERVERS];
+  const relay = await window.dago.webrtc.getRelayConfig();
+  if (relay.enabled && relay.url) {
+    iceServers.push({
+      urls: relay.url,
+      username: relay.username || undefined,
+      credential: relay.credential || undefined,
+    });
+  }
+  const iceTransportPolicy = relay.enabled && relay.forceRelay ? 'relay' : 'all';
+  return { iceServers, iceTransportPolicy };
+}
+
 // --- Host / share flow ---
 
 async function loadSources() {
@@ -102,7 +122,7 @@ startShareBtn.addEventListener('click', async () => {
     return;
   }
 
-  pc = new RTCPeerConnection({ iceServers: STUN_SERVERS });
+  pc = new RTCPeerConnection(await buildRtcConfig());
   localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
   pc.onicecandidate = (e) => {
     if (e.candidate) ws.send(JSON.stringify({ type: 'ice-candidate', candidate: e.candidate }));
@@ -162,7 +182,7 @@ watchBtn.addEventListener('click', async () => {
     return;
   }
 
-  pc = new RTCPeerConnection({ iceServers: STUN_SERVERS });
+  pc = new RTCPeerConnection(await buildRtcConfig());
   pc.ontrack = (e) => {
     remoteVideo.srcObject = e.streams[0];
   };

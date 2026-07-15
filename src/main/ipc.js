@@ -14,6 +14,7 @@ function registerIpc({
   pinStore,
   historyStore,
   filterListStore,
+  webrtcRelayStore,
   desktopCapturer,
   setPendingScreenShareSource,
   openUtilityWindow,
@@ -58,6 +59,11 @@ function registerIpc({
   ipcMain.handle('filterlists:set-enabled', (event, { id, enabled }) => filterListStore.setEnabled(id, enabled));
   ipcMain.handle('filterlists:update', (event, id) => filterListStore.update(id));
   ipcMain.handle('filterlists:update-all', () => filterListStore.updateAll());
+
+  // --- Screenshare TURN relay configuration ---
+
+  ipcMain.handle('webrtc:get-relay-config', () => webrtcRelayStore.get());
+  ipcMain.handle('webrtc:set-relay-config', (event, config) => webrtcRelayStore.set(config));
 
   ipcMain.handle('app:get-version', () => app.getVersion());
 

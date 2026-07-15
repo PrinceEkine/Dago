@@ -7,6 +7,7 @@ const { TorManager } = require('./tor-manager');
 const { PinStore } = require('./pin-store');
 const { HistoryStore } = require('./history-store');
 const { FilterListStore } = require('./filter-list-store');
+const { WebrtcRelayStore } = require('./webrtc-relay-store');
 const { registerIpc } = require('./ipc');
 
 let mainWindow;
@@ -92,6 +93,7 @@ app.whenReady().then(async () => {
   const pinStore = new PinStore(userDataDir);
   const historyStore = new HistoryStore(userDataDir, safeStorage);
   const filterListStore = new FilterListStore(userDataDir);
+  const webrtcRelayStore = new WebrtcRelayStore(userDataDir, safeStorage);
 
   session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
     if (!pendingScreenShareSourceId) {
@@ -112,6 +114,7 @@ app.whenReady().then(async () => {
     pinStore,
     historyStore,
     filterListStore,
+    webrtcRelayStore,
     desktopCapturer,
     setPendingScreenShareSource,
     openUtilityWindow,

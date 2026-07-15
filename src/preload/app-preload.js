@@ -53,4 +53,9 @@ contextBridge.exposeInMainWorld('dago', {
     getSources: () => ipcRenderer.invoke('screenshare:get-sources'),
     selectSource: (id) => ipcRenderer.invoke('screenshare:select-source', id),
   },
+
+  webrtc: {
+    getRelayConfig: () => ipcRenderer.invoke('webrtc:get-relay-config'),
+    setRelayConfig: (config) => ipcRenderer.invoke('webrtc:set-relay-config', config),
+  },
 });

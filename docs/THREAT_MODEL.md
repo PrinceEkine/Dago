@@ -42,9 +42,11 @@ the claims below should be treated as a guarantee.
   determined local attacker with root/admin access).
 - **Screenshare metadata** - the signaling server sees room codes and
   connection timing (not video content); the WebRTC connection itself, like
-  any P2P call, can reveal your public IP address to the other peer unless
-  you're both routed through Tor or a TURN relay (not yet integrated - see
-  roadmap).
+  any P2P call, reveals your public IP address to the other peer *unless* you
+  configure a TURN relay in Settings with "force relay" enabled, which routes
+  media through the relay and refuses direct candidates. Without that
+  configured, assume the other party can see your public IP - this is
+  inherent to P2P WebRTC, not something a signaling server design can fix.
 - **Supply-chain trust** - Dago is unaudited alpha software. Review the
   source yourself before relying on it, especially the privacy-preload and
   Tor integration code.

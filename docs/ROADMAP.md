@@ -20,13 +20,13 @@ the README).
       `toDataURL`, `toBlob`) plus new audio-context fingerprint resistance
       (`AudioBuffer`/`AnalyserNode` noise) and `innerWidth`/`innerHeight`
       bucketing alongside the existing `screen.width`/`height` bucketing
+- [x] Optional TURN relay for screensharing (user-configured, encrypted at
+      rest), with a "force relay" mode that hides both peers' public IPs
 
 ## Next
 
 - [ ] Bundle a pinned, verified Tor binary per platform instead of requiring
       a system install
-- [ ] TURN relay support for screenshare so it doesn't require direct
-      P2P connectivity or leak public IP to the peer
 - [ ] Full Adblock Plus filter syntax (path/regex rules, cosmetic/element
       hiding) - the current subscription parser only extracts domain-level
       `||domain^` and `@@||domain^` rules, not the full EasyList rule set

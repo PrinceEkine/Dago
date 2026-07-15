@@ -31,7 +31,8 @@ doesn't make you choose:
   missing feature.
 - **In-app, camera-free screensharing.** Share your screen peer-to-peer with
   another Dago user via a short room code - no account, no camera, no
-  microphone.
+  microphone - with an optional TURN relay if you don't want to reveal your
+  public IP to the other side.
 - **PIN-locked history.** Your browsing history is always encrypted at rest,
   and viewing it inside the browser additionally requires a PIN.
 - Everything you'd expect from a normal browser - tabs, address bar,
@@ -49,6 +50,7 @@ doesn't make you choose:
 | Fingerprint resistance (canvas/WebGL/timezone/UA) | Working, best-effort |
 | No-camera policy (video calls disabled everywhere) | Working |
 | Screensharing (screen-only, peer-to-peer, room code) | Working (needs a signaling server - one-command to self-host) |
+| Optional TURN relay for screensharing | Working (configure in Settings; "force relay" hides both peers' public IPs) |
 | PIN-gated, encrypted-at-rest history | Working |
 | Bookmarks, downloads, extensions | Not yet - see [`docs/ROADMAP.md`](docs/ROADMAP.md) |
 
@@ -76,7 +78,10 @@ npm run signaling-server
 ```
 
 Then point both the sharer's and viewer's Screenshare window at that
-server's address.
+server's address. By default the actual video connects directly
+peer-to-peer, revealing both sides' public IP to each other; if you'd rather
+not, configure a TURN server (e.g. a self-hosted `coturn`) under Settings and
+enable "force relay" to route through it instead.
 
 ## Status & honesty
 

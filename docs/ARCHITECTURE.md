@@ -40,6 +40,7 @@ privacy layer instead of reinventing HTML/CSS/JS rendering.
 | No video calls | `getUserMedia` rejects any request with a `video` constraint (both in the injected preload and as a second, main-process enforced check); `getDisplayMedia` is untouched | `src/preload/privacy-preload.js`, `src/main/main.js` |
 | PIN-gated history | History is always encrypted at rest via Electron's OS-keychain-backed `safeStorage`; viewing it in the UI additionally requires a PIN (scrypt-verified, never stored in plaintext) | `src/main/history-store.js`, `src/main/pin-store.js` |
 | Screensharing without calls | `desktopCapturer` + a user-driven source picker + `setDisplayMediaRequestHandler`, wired only into Dago's own Screenshare window, never into tab sessions | `src/main/main.js`, `src/renderer/pages/screenshare.js` |
+| Screenshare TURN relay | Optional, user-configured TURN server (encrypted at rest like history) added to the WebRTC `iceServers` list; "force relay" sets `iceTransportPolicy: 'relay'` so no direct/public-IP-revealing candidate is ever negotiated | `src/main/webrtc-relay-store.js`, `src/renderer/pages/screenshare.js` |
 
 Note on filter list subscriptions: the parser in `filter-list-store.js` only
 extracts plain domain-blocking rules (`||domain.tld^`) and their exceptions
@@ -55,6 +56,14 @@ Dago's screenshare feature is peer-to-peer WebRTC. The only server involved
 (`signaling-server/server.js`) relays SDP/ICE messages between exactly two
 peers by room code and never touches the actual video stream. Anyone can run
 their own signaling server; there's no dependency on a Dago-operated service.
+
+By default the WebRTC connection itself is still direct P2P (via a public
+STUN server for NAT traversal), which means each peer's public IP address is
+visible to the other - inherent to P2P WebRTC, not a signaling-server
+concern. Settings lets you point at your own TURN server (e.g. a
+self-hosted `coturn` instance) and optionally force all media through it
+(`iceTransportPolicy: 'relay'`), so a peer only ever learns the relay's
+address instead of yours.
 
 See `docs/THREAT_MODEL.md` for what this design does and doesn't protect
 against, and `docs/ROADMAP.md` for what's left before any of this is

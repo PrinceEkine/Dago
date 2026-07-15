@@ -97,6 +97,44 @@ updateAllBtn.addEventListener('click', async () => {
 
 refreshFilterLists();
 
+// --- Screenshare TURN relay ---
+
+const turnEnabled = document.getElementById('turn-enabled');
+const turnUrl = document.getElementById('turn-url');
+const turnUsername = document.getElementById('turn-username');
+const turnCredential = document.getElementById('turn-credential');
+const turnForceRelay = document.getElementById('turn-force-relay');
+const saveTurnBtn = document.getElementById('save-turn-btn');
+const turnStatus = document.getElementById('turn-status');
+
+async function loadTurnConfig() {
+  const config = await window.dago.webrtc.getRelayConfig();
+  turnEnabled.checked = config.enabled;
+  turnUrl.value = config.url;
+  turnUsername.value = config.username;
+  turnForceRelay.checked = config.forceRelay;
+  // Credential is intentionally left blank in the form even if one is saved -
+  // the input's placeholder communicates "leave blank to keep current" and
+  // saving never displays the stored secret back into the DOM.
+}
+
+saveTurnBtn.addEventListener('click', async () => {
+  turnStatus.textContent = '';
+  turnStatus.className = '';
+  await window.dago.webrtc.setRelayConfig({
+    enabled: turnEnabled.checked,
+    url: turnUrl.value.trim(),
+    username: turnUsername.value.trim(),
+    credential: turnCredential.value,
+    forceRelay: turnForceRelay.checked,
+  });
+  turnCredential.value = '';
+  turnStatus.textContent = 'Saved.';
+  turnStatus.style.color = '#9ece6a';
+});
+
+loadTurnConfig();
+
 window.dago.app.getVersion().then((version) => {
   versionDesc.textContent = `Dago ${version} (alpha)`;
 });
