@@ -16,12 +16,15 @@ the README).
 - [x] Camera blocked everywhere; peer-to-peer screen-only sharing feature
 - [x] Full EasyList/EasyPrivacy subscription support (user-controlled update
       cadence, no silent background fetch)
+- [x] Canvas noise extended to all three extraction vectors (`getImageData`,
+      `toDataURL`, `toBlob`) plus new audio-context fingerprint resistance
+      (`AudioBuffer`/`AnalyserNode` noise) and `innerWidth`/`innerHeight`
+      bucketing alongside the existing `screen.width`/`height` bucketing
 
 ## Next
 
 - [ ] Bundle a pinned, verified Tor binary per platform instead of requiring
       a system install
-- [ ] Proper canvas/audio-context letterboxing instead of point-noise
 - [ ] TURN relay support for screenshare so it doesn't require direct
       P2P connectivity or leak public IP to the peer
 - [ ] Full Adblock Plus filter syntax (path/regex rules, cosmetic/element
