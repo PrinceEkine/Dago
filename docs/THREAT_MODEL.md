@@ -50,6 +50,13 @@ the claims below should be treated as a guarantee.
 - **Supply-chain trust** - Dago is unaudited alpha software. Review the
   source yourself before relying on it, especially the privacy-preload and
   Tor integration code.
+- **Trust in your filter-list subscriptions** - a filter list is fetched
+  from a URL you supply, and its content directly controls what gets
+  blocked or *allowed*. A compromised or malicious list host can weaken your
+  protection (a real, concrete version of this was found and fixed before
+  ever shipping - see [`SECURITY.md`](../SECURITY.md)). Only subscribe to
+  lists from sources you trust the same way you'd trust any other
+  third-party code running with some authority over your browsing.
 
 If your safety depends on strong anonymity (e.g. journalism, activism under
 surveillance), use the mature, audited **Tor Browser** today. Dago's goal is

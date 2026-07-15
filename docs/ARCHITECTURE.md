@@ -23,10 +23,11 @@ privacy layer instead of reinventing HTML/CSS/JS rendering.
   in `main.js` forcibly attaches `src/preload/privacy-preload.js` to every
   webview regardless of what the page requests, so a compromised or
   malicious page can't opt out of the hardening.
-- **Utility windows** (History / Settings / Screenshare) are separate
-  `BrowserWindow`s using the default session and the same `app-preload.js`
-  bridge, not webviews - they need access to privileged IPC (PIN
-  verification, `desktopCapturer`) that tab content must never get.
+- **Utility windows** (History / Settings / Screenshare / Bookmarks /
+  Downloads) are separate `BrowserWindow`s using the default session and the
+  same `app-preload.js` bridge, not webviews - they need access to
+  privileged IPC (PIN verification, `desktopCapturer`) that tab content must
+  never get.
 
 ## Privacy layer
 
@@ -41,14 +42,27 @@ privacy layer instead of reinventing HTML/CSS/JS rendering.
 | PIN-gated history | History is always encrypted at rest via Electron's OS-keychain-backed `safeStorage`; viewing it in the UI additionally requires a PIN (scrypt-verified, never stored in plaintext) | `src/main/history-store.js`, `src/main/pin-store.js` |
 | Screensharing without calls | `desktopCapturer` + a user-driven source picker + `setDisplayMediaRequestHandler`, wired only into Dago's own Screenshare window, never into tab sessions | `src/main/main.js`, `src/renderer/pages/screenshare.js` |
 | Screenshare TURN relay | Optional, user-configured TURN server (encrypted at rest like history) added to the WebRTC `iceServers` list; "force relay" sets `iceTransportPolicy: 'relay'` so no direct/public-IP-revealing candidate is ever negotiated | `src/main/webrtc-relay-store.js`, `src/renderer/pages/screenshare.js` |
+| Cosmetic (element-hiding) blocking | `##selector`/`domain##selector` rules from enabled subscriptions are turned into a `<style>` tag injected into each tab's page, scoped to that page's hostname (with `~exclusion` support), via an IPC round-trip from `privacy-preload.js` | `src/main/adblock.js`, `src/preload/privacy-preload.js` |
 
-Note on filter list subscriptions: the parser in `filter-list-store.js` only
-extracts plain domain-blocking rules (`||domain.tld^`) and their exceptions
-(`@@||domain.tld^`) from a subscribed list - cosmetic/element-hiding rules,
-path-scoped rules, and regex filters in EasyList-style feeds are parsed out
-and ignored rather than partially/incorrectly applied. This keeps blocking
-consistent with the domain-level model the rest of `adblock.js` uses; a full
-Adblock Plus rule engine is tracked in `docs/ROADMAP.md`.
+Other non-privacy features round out normal browser functionality:
+bookmarks (`src/main/bookmark-store.js`, no PIN gate - unlike history,
+bookmarks aren't treated as sensitive) and a download manager
+(`src/main/download-manager.js`, attached to every tab session's
+`will-download` event, auto-saves with filename de-duplication rather than
+prompting per download).
+
+Filter list subscriptions support more than plain domain rules: the parser
+in `filter-list-store.js` also extracts path/wildcard address rules
+(`||domain.tld/ads/*^`, bare substrings like `annoying-ads.js`) and cosmetic
+rules. These are matched by `compileGlobPattern`/`globSegmentsMatch` in
+`adblock.js`, which deliberately avoid `RegExp` entirely in favor of
+sequential `String.prototype.indexOf` scanning - an earlier RegExp-based
+version turned out to have a real ReDoS vulnerability despite looking safe
+on paper (see [`SECURITY.md`](../SECURITY.md) for the full story). Raw
+`/regex/` filters from a subscription are still rejected outright rather
+than compiled, and request-type options (`$third-party`, `$script`, etc.)
+aren't implemented - only address matching. A full Adblock Plus rule engine
+remains tracked in `docs/ROADMAP.md`.
 
 ## Screensharing data path
 

@@ -141,6 +141,23 @@ function compileGlobPattern(rawPattern) {
   }
 
   const segments = pattern.split(/[*^]/);
+  const hasLiteralContent = segments.some((s) => s !== '');
+
+  // A pattern with no `||domain` component and no literal text at all - a
+  // bare `|`, `*`, `^`, or any combination that fully collapses to
+  // emptiness (e.g. `**`, `^^`) - would otherwise compile into something
+  // that matches every URL unconditionally: globSegmentsMatch has nothing to
+  // scan for, so it just returns true. That's almost never the intent of a
+  // filter-list rule, and if such a pattern lands in an exception (`@@`)
+  // rule, isBlocked() checks allowedPatterns first, so it would silently
+  // disable every other block source (the built-in list, every subscription
+  // domain, every subscription pattern) for the entire browser. A hostile or
+  // compromised filter-list URL - exactly the threat this feature has to
+  // assume - only needs to serve a single line like `@@|` to trigger that.
+  // Fail safe here: treat a degenerate pattern as matching nothing instead.
+  if (domain === null && !hasLiteralContent) {
+    return { test: () => false };
+  }
 
   return {
     test(url) {
