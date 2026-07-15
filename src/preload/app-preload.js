@@ -27,6 +27,15 @@ contextBridge.exposeInMainWorld('dago', {
     stats: () => ipcRenderer.invoke('adblock:stats'),
   },
 
+  filterLists: {
+    list: () => ipcRenderer.invoke('filterlists:list'),
+    add: (name, url) => ipcRenderer.invoke('filterlists:add', { name, url }),
+    remove: (id) => ipcRenderer.invoke('filterlists:remove', id),
+    setEnabled: (id, enabled) => ipcRenderer.invoke('filterlists:set-enabled', { id, enabled }),
+    update: (id) => ipcRenderer.invoke('filterlists:update', id),
+    updateAll: () => ipcRenderer.invoke('filterlists:update-all'),
+  },
+
   history: {
     record: (url, title) => ipcRenderer.send('history:record', { url, title }),
     isPinSet: () => ipcRenderer.invoke('history:is-pin-set'),
@@ -43,5 +52,10 @@ contextBridge.exposeInMainWorld('dago', {
   screenshare: {
     getSources: () => ipcRenderer.invoke('screenshare:get-sources'),
     selectSource: (id) => ipcRenderer.invoke('screenshare:select-source', id),
+  },
+
+  webrtc: {
+    getRelayConfig: () => ipcRenderer.invoke('webrtc:get-relay-config'),
+    setRelayConfig: (config) => ipcRenderer.invoke('webrtc:set-relay-config', config),
   },
 });

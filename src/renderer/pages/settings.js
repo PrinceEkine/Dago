@@ -18,6 +18,123 @@ window.dago.adblock.stats().then(({ domainCount }) => {
   adblockDesc.textContent = `Enabled - blocking ${domainCount} known ad/tracker domains by default.`;
 });
 
+// --- Filter list subscriptions ---
+
+const filterListEl = document.getElementById('filter-list-list');
+const filterListError = document.getElementById('filter-list-error');
+const newListName = document.getElementById('new-list-name');
+const newListUrl = document.getElementById('new-list-url');
+const addListBtn = document.getElementById('add-list-btn');
+const updateAllBtn = document.getElementById('update-all-lists-btn');
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function refreshFilterLists() {
+  const lists = await window.dago.filterLists.list();
+  filterListEl.innerHTML = '';
+  lists.forEach((entry) => {
+    const li = document.createElement('li');
+    li.className = 'filter-list-item';
+    const lastUpdated = entry.lastUpdated ? new Date(entry.lastUpdated).toLocaleString() : 'never updated';
+    li.innerHTML = `
+      <input type="checkbox" ${entry.enabled ? 'checked' : ''} data-id="${entry.id}" class="fl-toggle" />
+      <span class="fl-name">${escapeHtml(entry.name)}<br><span class="fl-meta">${escapeHtml(entry.url)} - ${entry.ruleCount} rules, ${lastUpdated}</span></span>
+      <button class="fl-update" data-id="${entry.id}">Update</button>
+      <button class="fl-remove danger" data-id="${entry.id}">Remove</button>
+    `;
+    filterListEl.appendChild(li);
+  });
+
+  filterListEl.querySelectorAll('.fl-toggle').forEach((el) => {
+    el.addEventListener('change', async (e) => {
+      await window.dago.filterLists.setEnabled(e.target.getAttribute('data-id'), e.target.checked);
+      refreshFilterLists();
+    });
+  });
+  filterListEl.querySelectorAll('.fl-update').forEach((el) => {
+    el.addEventListener('click', async (e) => {
+      const btn = e.target;
+      btn.disabled = true;
+      btn.textContent = 'Updating…';
+      const result = await window.dago.filterLists.update(btn.getAttribute('data-id'));
+      if (!result.ok) filterListError.textContent = `Update failed: ${result.reason}`;
+      else filterListError.textContent = '';
+      refreshFilterLists();
+    });
+  });
+  filterListEl.querySelectorAll('.fl-remove').forEach((el) => {
+    el.addEventListener('click', async (e) => {
+      await window.dago.filterLists.remove(e.target.getAttribute('data-id'));
+      refreshFilterLists();
+    });
+  });
+}
+
+addListBtn.addEventListener('click', async () => {
+  filterListError.textContent = '';
+  const result = await window.dago.filterLists.add(newListName.value.trim(), newListUrl.value.trim());
+  if (!result.ok) {
+    filterListError.textContent = result.reason;
+    return;
+  }
+  newListName.value = '';
+  newListUrl.value = '';
+  refreshFilterLists();
+});
+
+updateAllBtn.addEventListener('click', async () => {
+  updateAllBtn.disabled = true;
+  updateAllBtn.textContent = 'Updating…';
+  await window.dago.filterLists.updateAll();
+  updateAllBtn.disabled = false;
+  updateAllBtn.textContent = 'Update all';
+  refreshFilterLists();
+});
+
+refreshFilterLists();
+
+// --- Screenshare TURN relay ---
+
+const turnEnabled = document.getElementById('turn-enabled');
+const turnUrl = document.getElementById('turn-url');
+const turnUsername = document.getElementById('turn-username');
+const turnCredential = document.getElementById('turn-credential');
+const turnForceRelay = document.getElementById('turn-force-relay');
+const saveTurnBtn = document.getElementById('save-turn-btn');
+const turnStatus = document.getElementById('turn-status');
+
+async function loadTurnConfig() {
+  const config = await window.dago.webrtc.getRelayConfig();
+  turnEnabled.checked = config.enabled;
+  turnUrl.value = config.url;
+  turnUsername.value = config.username;
+  turnForceRelay.checked = config.forceRelay;
+  // Credential is intentionally left blank in the form even if one is saved -
+  // the input's placeholder communicates "leave blank to keep current" and
+  // saving never displays the stored secret back into the DOM.
+}
+
+saveTurnBtn.addEventListener('click', async () => {
+  turnStatus.textContent = '';
+  turnStatus.className = '';
+  await window.dago.webrtc.setRelayConfig({
+    enabled: turnEnabled.checked,
+    url: turnUrl.value.trim(),
+    username: turnUsername.value.trim(),
+    credential: turnCredential.value,
+    forceRelay: turnForceRelay.checked,
+  });
+  turnCredential.value = '';
+  turnStatus.textContent = 'Saved.';
+  turnStatus.style.color = '#9ece6a';
+});
+
+loadTurnConfig();
+
 window.dago.app.getVersion().then((version) => {
   versionDesc.textContent = `Dago ${version} (alpha)`;
 });

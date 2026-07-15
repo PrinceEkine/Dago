@@ -24,7 +24,48 @@
       </div>
     </div>
 
-    <div class="setting-row">
+    <div style="margin-top:20px">
+      <div class="header-row">
+        <div class="setting-label" style="font-weight:600">Filter list subscriptions</div>
+        <button id="update-all-lists-btn">Update all</button>
+      </div>
+      <p style="margin-top:4px">
+        Lists are never fetched automatically - enabling one just marks it for
+        use; nothing is downloaded until you press Update. Only https:// URLs
+        are accepted.
+      </p>
+      <ul id="filter-list-list" style="list-style:none;padding:0;margin:8px 0"></ul>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input id="new-list-name" type="text" placeholder="Name" style="flex:1" />
+        <input id="new-list-url" type="text" placeholder="https://example.com/list.txt" style="flex:2" />
+        <button id="add-list-btn">Add</button>
+      </div>
+      <p id="filter-list-error" class="error"></p>
+    </div>
+
+    <div style="margin-top:20px">
+      <div class="setting-label" style="font-weight:600">Screenshare relay (TURN)</div>
+      <p style="margin-top:4px">
+        Without this, screensharing connects directly peer-to-peer, which
+        reveals both sides' public IP addresses to each other (inherent to
+        how P2P WebRTC works). Configure your own TURN server to relay
+        through it instead - "force relay" refuses direct connections
+        entirely, so a peer only ever learns the TURN server's address.
+      </p>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:8px">
+        <input type="checkbox" id="turn-enabled" /> Enable TURN relay
+      </label>
+      <input id="turn-url" type="text" placeholder="turn:your-server.example:3478" />
+      <input id="turn-username" type="text" placeholder="Username (optional)" />
+      <input id="turn-credential" type="password" placeholder="Credential (leave blank to keep current)" />
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+        <input type="checkbox" id="turn-force-relay" /> Force relay (hide IP addresses from peer)
+      </label>
+      <button id="save-turn-btn">Save</button>
+      <p id="turn-status" class="error"></p>
+    </div>
+
+    <div class="setting-row" style="margin-top:12px">
       <div>
         <div class="setting-label">History PIN</div>
         <div class="setting-desc">Change or reset the PIN that guards your browsing history.</div>

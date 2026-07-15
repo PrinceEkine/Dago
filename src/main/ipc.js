@@ -13,6 +13,8 @@ function registerIpc({
   torManager,
   pinStore,
   historyStore,
+  filterListStore,
+  webrtcRelayStore,
   desktopCapturer,
   setPendingScreenShareSource,
   openUtilityWindow,
@@ -48,6 +50,20 @@ function registerIpc({
   ipcMain.handle('tor:new-identity', async () => torManager.newIdentity());
 
   ipcMain.handle('adblock:stats', () => ({ domainCount: BLOCKED_DOMAINS.length }));
+
+  // --- Filter list subscriptions (EasyList/EasyPrivacy-style, user-controlled) ---
+
+  ipcMain.handle('filterlists:list', () => filterListStore.list());
+  ipcMain.handle('filterlists:add', (event, { name, url }) => filterListStore.add(name, url));
+  ipcMain.handle('filterlists:remove', (event, id) => filterListStore.remove(id));
+  ipcMain.handle('filterlists:set-enabled', (event, { id, enabled }) => filterListStore.setEnabled(id, enabled));
+  ipcMain.handle('filterlists:update', (event, id) => filterListStore.update(id));
+  ipcMain.handle('filterlists:update-all', () => filterListStore.updateAll());
+
+  // --- Screenshare TURN relay configuration ---
+
+  ipcMain.handle('webrtc:get-relay-config', () => webrtcRelayStore.get());
+  ipcMain.handle('webrtc:set-relay-config', (event, config) => webrtcRelayStore.set(config));
 
   ipcMain.handle('app:get-version', () => app.getVersion());
 

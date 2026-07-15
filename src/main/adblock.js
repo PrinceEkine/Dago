@@ -30,7 +30,7 @@ const BLOCKED_DOMAINS = [
   'segment.com',
   'hotjar.com',
   'amplitude.com',
-  'bing.com/ads',
+  'bat.bing.com',
   'adsystem.com',
   'advertising.com',
   'pubmatic.com',
@@ -42,10 +42,38 @@ const BLOCKED_DOMAINS = [
   'sentry-cdn.com',
 ];
 
+// Domains contributed by enabled filter-list subscriptions (see
+// filter-list-store.js). Held here, rather than duplicated per-session, so
+// every open tab picks up subscription updates immediately - `isBlocked`
+// reads this live rather than a snapshot.
+const dynamicBlocklist = {
+  domains: new Set(),
+  allowedDomains: new Set(),
+};
+
+/** Replaces the subscription-sourced block/allow domain sets. */
+function setDynamicBlocklist(domains, allowedDomains) {
+  dynamicBlocklist.domains = domains;
+  dynamicBlocklist.allowedDomains = allowedDomains;
+}
+
+function matchesDomain(hostname, domain) {
+  return hostname === domain || hostname.endsWith(`.${domain}`);
+}
+
+function matchesAny(hostname, domainSet) {
+  for (const domain of domainSet) {
+    if (matchesDomain(hostname, domain)) return true;
+  }
+  return false;
+}
+
 function isBlocked(url) {
   try {
     const { hostname } = new URL(url);
-    return BLOCKED_DOMAINS.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+    if (matchesAny(hostname, dynamicBlocklist.allowedDomains)) return false;
+    if (BLOCKED_DOMAINS.some((domain) => matchesDomain(hostname, domain))) return true;
+    return matchesAny(hostname, dynamicBlocklist.domains);
   } catch (err) {
     return false;
   }
@@ -67,4 +95,4 @@ function attachAdblock(session, { enabled = true } = {}) {
   };
 }
 
-module.exports = { attachAdblock, isBlocked, BLOCKED_DOMAINS };
+module.exports = { attachAdblock, isBlocked, setDynamicBlocklist, BLOCKED_DOMAINS };

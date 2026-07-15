@@ -14,16 +14,22 @@ the README).
       normalization)
 - [x] PIN-gated history viewer, encrypted at rest via OS keychain
 - [x] Camera blocked everywhere; peer-to-peer screen-only sharing feature
+- [x] Full EasyList/EasyPrivacy subscription support (user-controlled update
+      cadence, no silent background fetch)
+- [x] Canvas noise extended to all three extraction vectors (`getImageData`,
+      `toDataURL`, `toBlob`) plus new audio-context fingerprint resistance
+      (`AudioBuffer`/`AnalyserNode` noise) and `innerWidth`/`innerHeight`
+      bucketing alongside the existing `screen.width`/`height` bucketing
+- [x] Optional TURN relay for screensharing (user-configured, encrypted at
+      rest), with a "force relay" mode that hides both peers' public IPs
 
 ## Next
 
 - [ ] Bundle a pinned, verified Tor binary per platform instead of requiring
       a system install
-- [ ] Full EasyList/EasyPrivacy subscription support (with user-controlled
-      update cadence, not a silent background fetch)
-- [ ] Proper canvas/audio-context letterboxing instead of point-noise
-- [ ] TURN relay support for screenshare so it doesn't require direct
-      P2P connectivity or leak public IP to the peer
+- [ ] Full Adblock Plus filter syntax (path/regex rules, cosmetic/element
+      hiding) - the current subscription parser only extracts domain-level
+      `||domain^` and `@@||domain^` rules, not the full EasyList rule set
 - [ ] Bookmarks, download manager, extension support
 - [ ] Reproducible builds + signed releases for Windows/macOS/Linux
 - [ ] Independent security audit of the Tor integration and
