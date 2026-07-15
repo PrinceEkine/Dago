@@ -24,7 +24,26 @@
       </div>
     </div>
 
-    <div class="setting-row">
+    <div style="margin-top:20px">
+      <div class="header-row">
+        <div class="setting-label" style="font-weight:600">Filter list subscriptions</div>
+        <button id="update-all-lists-btn">Update all</button>
+      </div>
+      <p style="margin-top:4px">
+        Lists are never fetched automatically - enabling one just marks it for
+        use; nothing is downloaded until you press Update. Only https:// URLs
+        are accepted.
+      </p>
+      <ul id="filter-list-list" style="list-style:none;padding:0;margin:8px 0"></ul>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input id="new-list-name" type="text" placeholder="Name" style="flex:1" />
+        <input id="new-list-url" type="text" placeholder="https://example.com/list.txt" style="flex:2" />
+        <button id="add-list-btn">Add</button>
+      </div>
+      <p id="filter-list-error" class="error"></p>
+    </div>
+
+    <div class="setting-row" style="margin-top:12px">
       <div>
         <div class="setting-label">History PIN</div>
         <div class="setting-desc">Change or reset the PIN that guards your browsing history.</div>

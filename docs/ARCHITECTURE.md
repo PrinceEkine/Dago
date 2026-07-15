@@ -34,11 +34,20 @@ privacy layer instead of reinventing HTML/CSS/JS rendering.
 |---|---|---|
 | Anonymized routing | Spawns the system `tor` daemon with N isolated `SocksPort`s; each tab is pinned to one, so tabs don't share circuits the way default Tor Browser tabs can | `src/main/tor-manager.js` |
 | New identity | Sends `SIGNAL NEWNYM` over Tor's control port | `src/main/tor-manager.js` |
-| Tracker/ad blocking | `webRequest.onBeforeRequest` cancels requests to a known tracker/ad domain list, per tab session | `src/main/adblock.js` |
+| Tracker/ad blocking | `webRequest.onBeforeRequest` cancels requests to a known tracker/ad domain list, per tab session; the list is a static built-in set merged live with any enabled filter-list subscriptions | `src/main/adblock.js` |
+| Filter list subscriptions | User-added EasyList/EasyPrivacy-style URLs, fetched and parsed only on explicit "Update" (never automatically), cached to disk, and merged into the shared blocklist that all tab sessions read from | `src/main/filter-list-store.js` |
 | Fingerprint resistance | Best-effort JS patches: canvas noise, WebGL vendor spoofing, UTC timezone, normalized UA/hardware values, screen-size bucketing | `src/preload/privacy-preload.js` |
 | No video calls | `getUserMedia` rejects any request with a `video` constraint (both in the injected preload and as a second, main-process enforced check); `getDisplayMedia` is untouched | `src/preload/privacy-preload.js`, `src/main/main.js` |
 | PIN-gated history | History is always encrypted at rest via Electron's OS-keychain-backed `safeStorage`; viewing it in the UI additionally requires a PIN (scrypt-verified, never stored in plaintext) | `src/main/history-store.js`, `src/main/pin-store.js` |
 | Screensharing without calls | `desktopCapturer` + a user-driven source picker + `setDisplayMediaRequestHandler`, wired only into Dago's own Screenshare window, never into tab sessions | `src/main/main.js`, `src/renderer/pages/screenshare.js` |
+
+Note on filter list subscriptions: the parser in `filter-list-store.js` only
+extracts plain domain-blocking rules (`||domain.tld^`) and their exceptions
+(`@@||domain.tld^`) from a subscribed list - cosmetic/element-hiding rules,
+path-scoped rules, and regex filters in EasyList-style feeds are parsed out
+and ignored rather than partially/incorrectly applied. This keeps blocking
+consistent with the domain-level model the rest of `adblock.js` uses; a full
+Adblock Plus rule engine is tracked in `docs/ROADMAP.md`.
 
 ## Screensharing data path
 

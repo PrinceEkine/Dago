@@ -21,7 +21,9 @@ doesn't make you choose:
   in default Tor Browser. See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
   for exactly what "more private than Tor" does and doesn't mean here.
 - **Built-in tracker & ad blocking**, which vanilla Tor deliberately doesn't
-  ship (it prioritizes uniform fingerprints over blocking).
+  ship (it prioritizes uniform fingerprints over blocking) - plus optional
+  EasyList/EasyPrivacy-style subscriptions you control (nothing is fetched
+  until you ask for it).
 - **Fingerprint resistance** - canvas noise, normalized hardware/timezone
   signals, spoofed WebGL vendor strings.
 - **No video calls, ever.** Camera access is disabled browser-wide - there is
@@ -43,6 +45,7 @@ doesn't make you choose:
 | Tabbed browsing, address bar, navigation | Working |
 | Tor routing with per-tab isolated circuits + "New Identity" | Working (requires system Tor install - see below) |
 | Built-in tracker/ad blocking | Working (curated domain list) |
+| EasyList/EasyPrivacy subscriptions | Working (add any https:// filter list URL in Settings; domain-level rules only - see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)) |
 | Fingerprint resistance (canvas/WebGL/timezone/UA) | Working, best-effort |
 | No-camera policy (video calls disabled everywhere) | Working |
 | Screensharing (screen-only, peer-to-peer, room code) | Working (needs a signaling server - one-command to self-host) |
