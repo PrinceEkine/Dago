@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ws: wss:; style-src 'self'; script-src 'self'; media-src 'self' blob:; img-src 'self' data:;" />
+  <title>Dago - Screenshare</title>
+  <link rel="stylesheet" href="pages.css" />
+</head>
+<body>
+  <div class="panel">
+    <h1>Screenshare</h1>
+    <p>Screen-only sharing between two Dago windows. Camera and microphone are never used here - there is no video/voice call mode.</p>
+
+    <label style="font-size:12px;color:#9aa5ce">Signaling server</label>
+    <input id="server-url" type="text" value="ws://localhost:8089" />
+
+    <div class="header-row" style="margin-top:16px">
+      <button id="tab-share" class="primary">Share my screen</button>
+      <button id="tab-watch">Watch a share</button>
+    </div>
+
+    <div id="share-panel">
+      <div id="source-list"></div>
+      <button id="start-share-btn">Start sharing</button>
+      <div id="share-active" class="hidden">
+        <p>Room code (give this to the viewer):</p>
+        <div class="room-code" id="room-code-display"></div>
+        <button id="stop-share-btn" class="danger">Stop sharing</button>
+        <video id="local-video" autoplay muted></video>
+      </div>
+      <p id="share-status" class="error"></p>
+    </div>
+
+    <div id="watch-panel" class="hidden">
+      <input id="room-code-input" type="text" placeholder="Enter room code" maxlength="6" />
+      <button id="watch-btn">Watch</button>
+      <p id="watch-status" class="error"></p>
+      <video id="remote-video" autoplay playsinline></video>
+    </div>
+  </div>
+
+  <script src="screenshare.js"></script>
+</body>
+</html>

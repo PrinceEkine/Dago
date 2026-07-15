@@ -1,0 +1,33 @@
+{
+  "name": "dago",
+  "version": "0.1.0-alpha",
+  "description": "A privacy-first web browser with Tor-routed browsing, PIN-locked history, and camera/mic-free screen sharing.",
+  "main": "src/main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "signaling-server": "node signaling-server/server.js",
+    "dist": "electron-builder"
+  },
+  "author": "Dago Project Contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "build": {
+    "appId": "org.dago.browser",
+    "productName": "Dago",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
+  <title>Dago - History</title>
+  <link rel="stylesheet" href="pages.css" />
+</head>
+<body>
+  <div id="pin-gate" class="panel">
+    <h1>History is PIN protected</h1>
+    <p id="pin-instructions">Enter your PIN to view browsing history.</p>
+    <input id="pin-input" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" />
+    <button id="pin-submit">Unlock</button>
+    <p id="pin-error" class="error"></p>
+  </div>
+
+  <div id="history-view" class="panel hidden">
+    <div class="header-row">
+      <h1>History</h1>
+      <div>
+        <button id="lock-btn">Lock</button>
+        <button id="clear-btn" class="danger">Clear all</button>
+      </div>
+    </div>
+    <input id="search-box" type="text" placeholder="Search history…" />
+    <ul id="history-list"></ul>
+    <p id="empty-msg" class="hidden">No history yet.</p>
+  </div>
+
+  <script src="history.js"></script>
+</body>
+</html>
