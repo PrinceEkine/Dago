@@ -4,8 +4,16 @@ const { ipcMain, session, app } = require('electron');
 const crypto = require('crypto');
 const { attachAdblock, getCosmeticRulesForHost, BLOCKED_DOMAINS } = require('./adblock');
 
+const NORMALIZED_CHROME_VERSION = '124';
 const NORMALIZED_USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+  `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${NORMALIZED_CHROME_VERSION}.0.0.0 Safari/537.36`;
+// Modern Chromium also sends these Client Hints headers alongside the
+// classic User-Agent string - if we only normalize one and not the other,
+// the mismatch between "User-Agent says Chrome 124" and "Sec-CH-UA says
+// whatever this Electron build's real Chromium version is" becomes its own
+// fingerprinting/bot-detection signal (this is a real, observed cause of
+// Cloudflare "verify you are human" challenges - see docs/THREAT_MODEL.md).
+const NORMALIZED_SEC_CH_UA = `"Not.A/Brand";v="8", "Chromium";v="${NORMALIZED_CHROME_VERSION}", "Google Chrome";v="${NORMALIZED_CHROME_VERSION}"`;
 
 /** Wires all renderer <-> main IPC. Called once from main.js at startup. */
 function registerIpc({
@@ -39,6 +47,11 @@ function registerIpc({
 
     ses.webRequest.onBeforeSendHeaders((details, callback) => {
       details.requestHeaders['User-Agent'] = NORMALIZED_USER_AGENT;
+      // Keep Client Hints consistent with the User-Agent override above -
+      // see the doc comment on NORMALIZED_SEC_CH_UA for why.
+      if (details.requestHeaders['sec-ch-ua']) details.requestHeaders['sec-ch-ua'] = NORMALIZED_SEC_CH_UA;
+      if (details.requestHeaders['sec-ch-ua-mobile']) details.requestHeaders['sec-ch-ua-mobile'] = '?0';
+      if (details.requestHeaders['sec-ch-ua-platform']) details.requestHeaders['sec-ch-ua-platform'] = '"Windows"';
       callback({ requestHeaders: details.requestHeaders });
     });
 

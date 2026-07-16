@@ -29,6 +29,19 @@ protect you identically.
   OS keychain; viewing it in-app additionally requires a PIN.
 - **Being pulled into an unwanted video/voice call** - the camera can't be
   activated by any site or script, in this browser, by design.
+- **Popup/popunder ad redirects** - `window.open()` is blocked outright,
+  rather than the earlier (fixed) behavior of auto-opening whatever a page
+  requested as a new tab. This is a real trade-off, not free: legitimate
+  popups (OAuth login windows, "open in new window" buttons) are blocked
+  too. There's no per-site allow-list yet - see `docs/ROADMAP.md`.
+- **Header/JS User-Agent mismatches that trip bot-detection walls** - the
+  `Sec-CH-UA*` Client Hints (both the HTTP headers and
+  `navigator.userAgentData` in JS) are normalized to match the spoofed
+  `User-Agent`. Found by hitting a real Cloudflare "verify you are human"
+  challenge in manual testing and tracing it to exactly this kind of
+  inconsistency - a good example of why "best-effort" fingerprint
+  resistance needs to cover a signal *and* the related signals around it,
+  not just the obvious one.
 
 ## What Dago does NOT currently defend against (known gaps)
 

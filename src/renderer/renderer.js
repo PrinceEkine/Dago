@@ -82,8 +82,19 @@ async function createTab(initialUrl) {
     if (tab.id === activeTabId) reloadBtn.innerHTML = '&#8635;';
     updateNavButtons();
   });
+  // Popups are blocked by default, full stop - not opened in a background
+  // tab, not shown as a "blocked, click to allow" prompt. Ad networks on
+  // aggregator/streaming sites routinely trigger window.open() popunders
+  // from a click anywhere on the page (a video player's own "play" button,
+  // for instance), and earlier this simply opened whatever the popup asked
+  // for as a new tab - which defeated `allowpopups="false"` above rather
+  // than enforcing it, and is exactly the "ad opened a new tab and
+  // redirected me" behavior this is meant to prevent. The real trade-off:
+  // legitimate uses of window.open() (OAuth login popups, "open in new
+  // window" buttons) won't work either. See docs/ROADMAP.md for a possible
+  // future per-site allow list instead of an all-or-nothing block.
   webview.addEventListener('new-window', (e) => {
-    createTab(e.url);
+    console.log(`Blocked popup: ${e.url}`);
   });
 
   activateTab(id);

@@ -46,6 +46,13 @@ the README).
       for what it found (including a real, pre-merge bypass of ad/tracker
       blocking) and, importantly, why it is explicitly *not* a substitute
       for the independent audit below.
+- [x] Popup/popunder blocking: `window.open()` calls from tab content are
+      blocked outright instead of auto-opened as a new tab, closing a real
+      ad-popunder-and-redirect bug found during manual testing; plus
+      `Sec-CH-UA*` Client Hints (headers and `navigator.userAgentData` in
+      JS) normalized to match the spoofed `User-Agent`, closing a
+      fingerprint inconsistency traced to a real Cloudflare challenge wall
+      hit during that same testing
 - [x] Android app (`android/`) - a separate codebase (Electron doesn't run
       on mobile), sharing the ad-block/filter-parser algorithms via a
       genuinely tested plain-Kotlin `:logic` module, plus WebView-based
@@ -65,6 +72,9 @@ the README).
 - [ ] Actually bundle verified Tor binaries for desktop (the groundwork
       above exists; someone with network access + a PGP verification step
       needs to run it) - Android already gets this for free via tor-android
+- [ ] Per-site popup allow-list, so the blanket `window.open()` block above
+      doesn't also break legitimate uses (OAuth login popups, "open in new
+      window" buttons) - today it's all-or-nothing
 - [ ] Full Adblock Plus filter syntax: request-type options (`$third-party`,
       `$script`, etc.), and a safe way to support at least some of what raw
       `/regex/` filters express without reintroducing ReDoS risk
