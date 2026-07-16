@@ -1,5 +1,9 @@
 # Architecture
 
+This document covers the **desktop** app (`src/`). The Android app
+(`android/`) is a separate codebase with its own architecture doc -
+see `android/README.md` - since Electron doesn't run on mobile.
+
 Dago (alpha) is an Electron application. Electron was chosen over a
 from-scratch engine because writing a competitive browser rendering engine,
 JS engine, and network stack is a multi-year, industry-scale effort (see

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/dago_background">
+
+    <!-- Tab strip -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/dago_surface"
+        android:paddingTop="6dp"
+        android:paddingHorizontal="4dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/tabStrip"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:fastScrollEnabled="false" />
+
+        <ImageButton
+            android:id="@+id/newTabButton"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/new_tab"
+            android:src="@android:drawable/ic_input_add"
+            app:tint="@color/dago_text" />
+    </LinearLayout>
+
+    <!-- Toolbar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/dago_surface"
+        android:padding="8dp"
+        android:gravity="center_vertical">
+
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/action_back"
+            android:src="@android:drawable/ic_media_previous"
+            app:tint="@color/dago_text" />
+
+        <ImageButton
+            android:id="@+id/forwardButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/action_forward"
+            android:src="@android:drawable/ic_media_next"
+            app:tint="@color/dago_text" />
+
+        <ImageButton
+            android:id="@+id/reloadButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/action_reload"
+            android:src="@android:drawable/ic_menu_rotate"
+            app:tint="@color/dago_text" />
+
+        <EditText
+            android:id="@+id/addressBar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="6dp"
+            android:background="@color/dago_surface_alt"
+            android:hint="@string/address_bar_hint"
+            android:imeOptions="actionGo"
+            android:inputType="textUri"
+            android:maxLines="1"
+            android:padding="8dp"
+            android:textColor="@color/dago_text"
+            android:textColorHint="@color/dago_text_faint" />
+
+        <ImageButton
+            android:id="@+id/bookmarkButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/action_bookmark"
+            android:src="@android:drawable/btn_star_big_off"
+            app:tint="@color/dago_text" />
+
+        <ImageButton
+            android:id="@+id/newIdentityButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/action_new_identity"
+            android:src="@android:drawable/ic_menu_revert"
+            app:tint="@color/dago_text" />
+
+        <ImageButton
+            android:id="@+id/menuButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/action_settings"
+            android:src="@android:drawable/ic_menu_more"
+            app:tint="@color/dago_text" />
+    </LinearLayout>
+
+    <!-- Status bar -->
+    <TextView
+        android:id="@+id/torStatusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/dago_surface"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="4dp"
+        android:text="@string/tor_status_starting"
+        android:textColor="@color/dago_text_muted"
+        android:textSize="11sp" />
+
+    <!-- Active tab's WebView is added here at runtime -->
+    <FrameLayout
+        android:id="@+id/webViewContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>

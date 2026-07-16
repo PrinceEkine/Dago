@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Dago" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/dago_accent</item>
+        <item name="colorPrimaryDark">@color/dago_background</item>
+        <item name="colorAccent">@color/dago_accent</item>
+        <item name="android:windowBackground">@color/dago_background</item>
+        <item name="android:statusBarColor">@color/dago_surface</item>
+    </style>
+</resources>

@@ -51,3 +51,18 @@ because "we reviewed our own code and it's fine" is a much weaker claim than
 "here's what our review actually found, including our own mistakes" - a
 self-review is still just that, self-review, and it does not substitute for
 an independent audit by people with no stake in the outcome.
+
+## Android app caveat
+
+`android/`'s shared `:logic` module ports the same glob-matching and
+filter-parsing algorithms, with both fixes above built in from the start
+(there's a regression test for the degenerate-pattern case specifically -
+see `android/logic/src/test/kotlin/.../GlobMatcherTest.kt`) rather than
+needing to be rediscovered there. That module has genuine, passing
+automated tests. The rest of the Android app (`:app` - the actual
+`WebView`/Tor-service/UI layer) has **not been build-verified at all** in
+this repository, for reasons unrelated to code review depth: it requires
+the Android SDK, and this project's dev sandbox has no network access to
+fetch it. See `android/README.md` for the full explanation. Treat that part
+of the codebase as less scrutinized than everything covered above until a
+real build/test pass happens on it.

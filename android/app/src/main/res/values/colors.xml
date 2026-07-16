@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same palette as the desktop app's src/renderer/styles.css, for a consistent look. -->
+    <color name="dago_background">#1a1b26</color>
+    <color name="dago_surface">#16161e</color>
+    <color name="dago_surface_alt">#24283b</color>
+    <color name="dago_surface_raised">#292e42</color>
+    <color name="dago_border">#3b4261</color>
+    <color name="dago_text">#c0caf5</color>
+    <color name="dago_text_muted">#9aa5ce</color>
+    <color name="dago_text_faint">#565f89</color>
+    <color name="dago_accent">#7aa2f7</color>
+    <color name="dago_warning">#e0af68</color>
+    <color name="dago_danger">#f7768e</color>
+    <color name="dago_success">#9ece6a</color>
+</resources>

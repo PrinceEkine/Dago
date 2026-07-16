@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple shield shape (privacy) with a "D" cutout, in the accent color used across the app. -->
+    <path
+        android:fillColor="#7aa2f7"
+        android:pathData="M54,20 L80,32 V54 C80,72 68,84 54,90 C40,84 28,72 28,54 V32 Z" />
+    <path
+        android:fillColor="#1a1b26"
+        android:pathData="M46,38 H54 C64,38 70,44 70,54 C70,64 64,70 54,70 H46 Z M54,46 H50 V62 H54 C58,62 62,59 62,54 C62,49 58,46 54,46 Z" />
+</vector>

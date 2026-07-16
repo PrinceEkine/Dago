@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dago</string>
+    <string name="new_tab">New tab</string>
+    <string name="address_bar_hint">Search or enter address</string>
+    <string name="action_back">Back</string>
+    <string name="action_forward">Forward</string>
+    <string name="action_reload">Reload</string>
+    <string name="action_new_identity">New Tor identity</string>
+    <string name="action_bookmark">Bookmark this page</string>
+    <string name="action_bookmarks">Bookmarks</string>
+    <string name="action_downloads">Downloads</string>
+    <string name="action_history">History</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="tor_status_connected">Tor: connected</string>
+    <string name="tor_status_starting">Tor: starting…</string>
+    <string name="tor_status_unavailable">Tor: unavailable</string>
+
+    <string name="history_pin_setup_title">Set a PIN to protect your history</string>
+    <string name="history_pin_unlock_title">Enter your PIN to view history</string>
+    <string name="history_pin_hint">PIN</string>
+    <string name="history_unlock">Unlock</string>
+    <string name="history_set_pin">Set PIN</string>
+    <string name="history_lock">Lock</string>
+    <string name="history_clear">Clear all</string>
+    <string name="history_empty">No history yet.</string>
+    <string name="history_incorrect_pin">Incorrect PIN.</string>
+
+    <string name="bookmarks_empty">No bookmarks yet - use the star button next to the address bar.</string>
+    <string name="downloads_empty">No downloads yet.</string>
+
+    <string name="settings_tor_title">Tor routing</string>
+    <string name="settings_adblock_title">Tracker &amp; ad blocking</string>
+    <string name="settings_filter_lists_title">Filter list subscriptions</string>
+    <string name="settings_filter_lists_desc">Lists are never fetched automatically - enabling one just marks it for use; nothing is downloaded until you press Update.</string>
+    <string name="settings_camera_title">Camera access</string>
+    <string name="settings_camera_desc">Blocked everywhere - see the README.</string>
+    <string name="settings_version_title">Version</string>
+</resources>

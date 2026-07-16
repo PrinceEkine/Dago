@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@color/dago_surface_alt"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="6dp"
+    android:layout_marginEnd="4dp">
+
+    <TextView
+        android:id="@+id/tabTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:maxWidth="140dp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="@string/new_tab"
+        android:textColor="@color/dago_text_muted"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/tabClose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:text="&#215;"
+        android:textColor="@color/dago_text_faint"
+        android:textSize="14sp" />
+</LinearLayout>

@@ -39,7 +39,28 @@ doesn't make you choose:
   back/forward, bookmarizable addresses for internal pages - without the
   telemetry.
 
-## Features in this repo (alpha)
+## Platforms
+
+Dago is two separate codebases sharing a design philosophy, not one
+codebase that runs everywhere - Electron (the desktop app in `src/`)
+doesn't run on mobile:
+
+- **Desktop** (Windows/macOS/Linux) - `src/`, documented below.
+- **Android** - `android/`, a `WebView`-based app with its own README
+  (`android/README.md`) covering what's shared with desktop (the ad-block
+  and filter-list-parsing algorithms, via a genuinely tested plain-Kotlin
+  module), what's architecturally different (one shared Tor circuit instead
+  of per-tab isolation, shared cookie storage across tabs, no screensharing
+  yet), and what's verified versus not (the shared logic module has real
+  passing tests; the Android UI/Tor-service layer is unbuilt in this
+  project's own dev environment for the same network-access reasons as the
+  Tor-binary and CI notes below).
+- **iOS** - not started; see `docs/ROADMAP.md` for why it's a bigger lift
+  than Android (Apple requires all iOS browsers to use WebKit specifically,
+  and restricts background processes in ways that rule out bundling Tor the
+  way Android allows).
+
+## Features in this repo (alpha, desktop)
 
 | Feature | Status |
 |---|---|
