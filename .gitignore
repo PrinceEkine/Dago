@@ -7,3 +7,11 @@ userdata/
 *.pin
 .env
 resources/tor/bin/
+
+# Android
+android/**/build/
+android/.gradle/
+android/.kotlin/
+android/local.properties
+android/**/*.iml
+android/.idea/

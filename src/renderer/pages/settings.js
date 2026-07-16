@@ -18,6 +18,56 @@ window.dago.adblock.stats().then(({ domainCount }) => {
   adblockDesc.textContent = `Enabled - blocking ${domainCount} known ad/tracker domains by default.`;
 });
 
+// --- Search engine ---
+
+const searchProviderEl = document.getElementById('search-provider-list');
+const searchProviderError = document.getElementById('search-provider-error');
+const newProviderName = document.getElementById('new-provider-name');
+const newProviderUrl = document.getElementById('new-provider-url');
+const addProviderBtn = document.getElementById('add-provider-btn');
+
+async function refreshSearchProviders() {
+  const providers = await window.dago.search.list();
+  searchProviderEl.innerHTML = '';
+  providers.forEach((provider) => {
+    const li = document.createElement('li');
+    li.className = 'filter-list-item';
+    li.innerHTML = `
+      <input type="radio" name="search-provider" ${provider.active ? 'checked' : ''} data-id="${provider.id}" class="sp-select" />
+      <span class="fl-name">${escapeHtml(provider.name)}<br><span class="fl-meta">${escapeHtml(provider.urlTemplate)}</span></span>
+      ${provider.builtIn ? '' : `<button class="sp-remove danger" data-id="${provider.id}">Remove</button>`}
+    `;
+    searchProviderEl.appendChild(li);
+  });
+
+  searchProviderEl.querySelectorAll('.sp-select').forEach((el) => {
+    el.addEventListener('change', async (e) => {
+      await window.dago.search.setActive(e.target.getAttribute('data-id'));
+      refreshSearchProviders();
+    });
+  });
+  searchProviderEl.querySelectorAll('.sp-remove').forEach((el) => {
+    el.addEventListener('click', async (e) => {
+      await window.dago.search.remove(e.target.getAttribute('data-id'));
+      refreshSearchProviders();
+    });
+  });
+}
+
+addProviderBtn.addEventListener('click', async () => {
+  searchProviderError.textContent = '';
+  const result = await window.dago.search.add(newProviderName.value.trim(), newProviderUrl.value.trim());
+  if (!result.ok) {
+    searchProviderError.textContent = result.reason;
+    return;
+  }
+  newProviderName.value = '';
+  newProviderUrl.value = '';
+  refreshSearchProviders();
+});
+
+refreshSearchProviders();
+
 // --- Filter list subscriptions ---
 
 const filterListEl = document.getElementById('filter-list-list');

@@ -1,5 +1,9 @@
 # Architecture
 
+This document covers the **desktop** app (`src/`). The Android app
+(`android/`) is a separate codebase with its own architecture doc -
+see `android/README.md` - since Electron doesn't run on mobile.
+
 Dago (alpha) is an Electron application. Electron was chosen over a
 from-scratch engine because writing a competitive browser rendering engine,
 JS engine, and network stack is a multi-year, industry-scale effort (see
@@ -46,10 +50,14 @@ privacy layer instead of reinventing HTML/CSS/JS rendering.
 
 Other non-privacy features round out normal browser functionality:
 bookmarks (`src/main/bookmark-store.js`, no PIN gate - unlike history,
-bookmarks aren't treated as sensitive) and a download manager
+bookmarks aren't treated as sensitive), a download manager
 (`src/main/download-manager.js`, attached to every tab session's
 `will-download` event, auto-saves with filename de-duplication rather than
-prompting per download).
+prompting per download), and a configurable default search engine
+(`src/main/search-provider-store.js` - DuckDuckGo/Startpage/Brave
+Search/Mojeek built in, plus any `https://` URL template with a `%s` query
+placeholder the user adds; the address bar asks for the active provider's
+URL via `search:build-url` rather than hardcoding one).
 
 Filter list subscriptions support more than plain domain rules: the parser
 in `filter-list-store.js` also extracts path/wildcard address rules

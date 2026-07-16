@@ -5,6 +5,13 @@ protect against. Dago is early-stage software built on a limited budget by a
 small team - it has **not** been independently security-audited, and none of
 the claims below should be treated as a guarantee.
 
+This covers the **desktop** app. The Android app (`android/`) shares the
+same general goals but has real architectural differences that change its
+threat model in places - notably, Android shares one Tor circuit and one
+cookie/storage pool across all tabs, instead of desktop's per-tab isolation.
+See `android/README.md`'s comparison table before assuming the two apps
+protect you identically.
+
 ## What Dago currently defends against
 
 - **Network eavesdroppers / your ISP** - when Tor is installed and running,

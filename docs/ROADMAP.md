@@ -46,11 +46,25 @@ the README).
       for what it found (including a real, pre-merge bypass of ad/tracker
       blocking) and, importantly, why it is explicitly *not* a substitute
       for the independent audit below.
+- [x] Android app (`android/`) - a separate codebase (Electron doesn't run
+      on mobile), sharing the ad-block/filter-parser algorithms via a
+      genuinely tested plain-Kotlin `:logic` module, plus WebView-based
+      tabs, Tor routing (via the Guardian Project's `tor-android`, which
+      conveniently bundles its own verified binaries - no system Tor
+      install needed, unlike desktop today), camera blocking, and
+      PIN-gated history/bookmarks/downloads/settings. The app module
+      itself is unbuilt/unverified here (needs the Android SDK, which
+      needs `dl.google.com` - confirmed blocked, same as the Tor/Electron
+      binary hosts) - see `android/README.md` for the full verification
+      story and the real architectural differences from desktop (one
+      shared Tor circuit instead of per-tab isolation, shared cookie
+      storage across tabs, no screensharing yet).
 
 ## Next
 
-- [ ] Actually bundle verified Tor binaries (the groundwork above exists;
-      someone with network access + a PGP verification step needs to run it)
+- [ ] Actually bundle verified Tor binaries for desktop (the groundwork
+      above exists; someone with network access + a PGP verification step
+      needs to run it) - Android already gets this for free via tor-android
 - [ ] Full Adblock Plus filter syntax: request-type options (`$third-party`,
       `$script`, etc.), and a safe way to support at least some of what raw
       `/regex/` filters express without reintroducing ReDoS risk
@@ -61,10 +75,20 @@ the README).
 - [ ] Independent security audit by a paid third party - the self-review
       above is real work, but it's still the same people who wrote the
       code checking their own code
+- [ ] Build-verify the Android `:app` module (needs a maintainer with an
+      installed Android SDK - see `android/README.md`) and get a real
+      device/emulator smoke test done
+- [ ] Android screensharing (needs `MediaProjection` + its own foreground
+      service - a distinct undertaking from the WebRTC approach on desktop)
 
 ## Later
 
-- [ ] Mobile builds (Android first)
+- [ ] iOS app - a third codebase again: Apple requires all iOS browsers to
+      use WebKit specifically (no Chromium/Gecko/custom engines allowed),
+      and iOS's background-process restrictions rule out running a bundled
+      Tor daemon the way Android's foreground service allows, so this would
+      need real design work, not just a port. Also requires a paid Apple
+      Developer account and a Mac to build/submit from.
 - [ ] Optional bridges/pluggable transports for censored networks
 - [ ] Sync (opt-in, end-to-end encrypted, self-hostable relay)
 
