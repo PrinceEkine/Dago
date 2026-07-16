@@ -62,6 +62,7 @@ function registerIpc({
   ipcMain.handle('tor:get-status', () => ({
     available: torManager.available,
     bootstrapped: torManager.bootstrapped,
+    source: torManager.torBinarySource,
   }));
 
   ipcMain.handle('tor:new-identity', async () => torManager.newIdentity());

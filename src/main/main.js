@@ -140,6 +140,7 @@ app.whenReady().then(async () => {
     mainWindow.webContents.send('tor:status-changed', {
       available: result.available,
       reason: result.reason || null,
+      source: result.source || null,
     });
   }
 

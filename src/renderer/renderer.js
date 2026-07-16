@@ -215,7 +215,10 @@ bookmarkBtn.addEventListener('click', async () => {
 
 function renderTorStatus(status) {
   if (status.available) {
-    torStatusEl.textContent = 'Tor: connected (per-tab circuits)';
+    const sourceNote = status.source === 'tor-browser' ? ', via detected Tor Browser install'
+      : status.source === 'bundled' ? ', bundled'
+      : '';
+    torStatusEl.textContent = `Tor: connected (per-tab circuits${sourceNote})`;
     torStatusEl.className = 'status-pill status-on';
   } else {
     torStatusEl.textContent = `Tor: unavailable (${status.reason || 'not installed'})`;

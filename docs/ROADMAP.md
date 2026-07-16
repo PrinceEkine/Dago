@@ -46,6 +46,14 @@ the README).
       for what it found (including a real, pre-merge bypass of ad/tracker
       blocking) and, importantly, why it is explicitly *not* a substitute
       for the independent audit below.
+- [x] Tor Browser auto-detection as a fallback binary source: a user with
+      only Tor Browser installed (no separate system Tor) previously always
+      got "Tor: unavailable", because Tor Browser deliberately keeps its
+      bundled `tor` off PATH. Dago now checks common per-OS Tor Browser
+      install locations if PATH lookup fails, verified with a functional
+      test against a simulated Tor Browser directory layout (this sandbox
+      has no system Tor at all, making it a clean test of the fallback path
+      specifically)
 - [x] Popup/popunder blocking: `window.open()` calls from tab content are
       denied via a main-process `setWindowOpenHandler`, closing a real
       ad-popunder-and-redirect bug found during manual testing (it took two
