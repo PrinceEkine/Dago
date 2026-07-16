@@ -74,6 +74,29 @@ an independent audit by people with no stake in the outcome.
   bypassed the Tor SOCKS proxy (STUN requests from ad scripts were visible
   in the user's logs), a real-IP-discovery vector now closed with
   `setWebRTCIPHandlingPolicy('disable_non_proxied_udp')`.
+- **Found in the field: enabling a full EasyList/EasyPrivacy subscription
+  broke normal site loading, not just ads.** `filter-list-store.js` always
+  discarded every Adblock Plus filter option (`$third-party`, `$script`,
+  etc.) and applied the bare address pattern to every request unconditionally
+  - documented as a known limitation, but its actual consequence wasn't
+  fully thought through: a large share of real EasyList/EasyPrivacy rules
+  are scoped with `$third-party` specifically so they only ever match
+  embedded ads/trackers, never a site's own first-party page or assets.
+  Dropping that scoping meant a rule aimed at some ad network could just as
+  easily match the streaming site's own domain or CDN path, and did - a user
+  reported that two sites stopped loading entirely as soon as they enabled
+  EasyList. Fixed by parsing out the `$third-party` option (still ignoring
+  all the others) and skipping a `$third-party`-scoped rule whenever the
+  request is same-site as the current top-level page, using
+  `webRequest`'s `details.frame.top.url` for that comparison; a top-level
+  navigation with no prior page to compare against (e.g. a tab's very first
+  load) is treated as first-party to itself, the same convention real
+  ad-blockers use. Verified with unit tests simulating exactly this
+  scenario (a subscription rule matching a fake streaming site's own CDN
+  path no longer blocks it, while a genuinely third-party ad domain and a
+  plainly-listed malvertising redirect domain are both still blocked) -
+  not a live re-test against the real sites, since this dev environment has
+  no route to them either.
 
 ## Android app caveat
 

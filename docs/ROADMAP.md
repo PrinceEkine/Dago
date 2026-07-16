@@ -46,6 +46,14 @@ the README).
       for what it found (including a real, pre-merge bypass of ad/tracker
       blocking) and, importantly, why it is explicitly *not* a substitute
       for the independent audit below.
+- [x] `$third-party` filter-option support: enabling a full EasyList/
+      EasyPrivacy subscription was blocking normal site loading, not just
+      ads, because every other filter option was already (and still is)
+      discarded, and most real-world rules rely on `$third-party` scoping
+      specifically to avoid matching a site's own first-party content. Now
+      parsed and honored (skipped when the request is same-site as the
+      current tab's top-level page); all other options remain unimplemented
+      - see `src/main/adblock.js` and `SECURITY.md` for the full story
 - [x] Tor Browser auto-detection as a fallback binary source: a user with
       only Tor Browser installed (no separate system Tor) previously always
       got "Tor: unavailable", because Tor Browser deliberately keeps its
@@ -87,9 +95,11 @@ the README).
 - [ ] Per-site popup allow-list, so the blanket `window.open()` block above
       doesn't also break legitimate uses (OAuth login popups, "open in new
       window" buttons) - today it's all-or-nothing
-- [ ] Full Adblock Plus filter syntax: request-type options (`$third-party`,
-      `$script`, etc.), and a safe way to support at least some of what raw
-      `/regex/` filters express without reintroducing ReDoS risk
+- [ ] Remaining Adblock Plus filter options: `$third-party` is implemented
+      (see "Now" above); resource-type options (`$script`, `$image`, `$xhr`,
+      etc.) and `$domain=` scoping are still ignored, and a safe way to
+      support at least some of what raw `/regex/` filters express without
+      reintroducing ReDoS risk remains unsolved
 - [ ] Browser extension support (a WebExtensions-compatible API surface) -
       not attempted yet; this is a much larger undertaking than the other
       "Next" items, closer in scope to a second browser feature
