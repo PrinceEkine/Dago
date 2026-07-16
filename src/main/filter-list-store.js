@@ -29,9 +29,16 @@ const MAX_CSS_SELECTOR_LENGTH = 300;
  * version of the glob matcher used RegExp internally instead of indexOf and
  * had this exact problem despite being built only from escaped literals - a
  * ~30-wildcard pattern took over two minutes to fail a single match. The
- * indexOf-based matcher replaced it for that reason.) Filter options
- * (`$third-party`, `$script`, etc.) are stripped and ignored - only address
- * matching, not request-type matching, is implemented.
+ * indexOf-based matcher replaced it for that reason.) Almost all filter
+ * options (`$script`, `$xmlhttprequest`, `$domain=`, etc.) are still stripped
+ * and ignored - only address matching, not full request-type matching, is
+ * implemented. The one option that IS read is `$third-party`: EasyList/
+ * EasyPrivacy scope most of their rules with it specifically so they only
+ * ever match embedded ads/trackers, never a site's own first-party content,
+ * and dropping that distinction entirely turned out to make a full
+ * subscription block sites' own pages/assets outright (see SECURITY.md/
+ * ROADMAP.md) - so that one flag is captured and carried through to
+ * adblock.js's isBlocked() rather than discarded with the rest.
  */
 function parseFilterList(text) {
   const blocked = [];
@@ -67,17 +74,20 @@ function parseFilterList(text) {
     const isException = line.startsWith('@@');
     const body = isException ? line.slice(2) : line;
 
-    // Strip filter options (anything from the first unescaped '$' onward) -
-    // not implemented, see doc comment.
+    // Split off filter options (anything from the first unescaped '$'
+    // onward). Only `third-party` is read out of them - see doc comment;
+    // everything else in the options list is still discarded.
     const dollarIdx = body.indexOf('$');
     const addressPattern = dollarIdx === -1 ? body : body.slice(0, dollarIdx);
+    const options = dollarIdx === -1 ? '' : body.slice(dollarIdx + 1);
+    const thirdParty = options.split(',').map((o) => o.trim()).includes('third-party');
     if (!addressPattern) continue;
 
     const domainOnlyMatch = addressPattern.match(/^\|\|([a-zA-Z0-9.-]+)\^$/);
     if (domainOnlyMatch) {
       const domain = domainOnlyMatch[1].toLowerCase();
-      if (isException) allowed.push(domain);
-      else blocked.push(domain);
+      if (isException) allowed.push({ domain, thirdParty });
+      else blocked.push({ domain, thirdParty });
       continue;
     }
 
@@ -86,8 +96,8 @@ function parseFilterList(text) {
     // against the full request URL (see compileGlobPattern; a pattern with
     // no anchors or wildcards is just an unanchored literal substring
     // search, which is exactly what a bare ABP address rule means).
-    if (isException) allowedPatterns.push(addressPattern);
-    else blockedPatterns.push(addressPattern);
+    if (isException) allowedPatterns.push({ pattern: addressPattern, thirdParty });
+    else blockedPatterns.push({ pattern: addressPattern, thirdParty });
   }
 
   return { blocked, allowed, blockedPatterns, allowedPatterns, cosmeticRules };
@@ -194,8 +204,8 @@ class FilterListStore {
   }
 
   _rebuildDynamicBlocklist() {
-    const domains = new Set();
-    const allowed = new Set();
+    const domains = [];
+    const allowed = [];
     const blockedPatterns = [];
     const allowedPatterns = [];
     const cosmeticRules = [];
@@ -205,8 +215,8 @@ class FilterListStore {
       if (!fs.existsSync(cachePath)) continue;
       try {
         const parsed = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-        parsed.blocked.forEach((d) => domains.add(d));
-        parsed.allowed.forEach((d) => allowed.add(d));
+        domains.push(...(parsed.blocked || []));
+        allowed.push(...(parsed.allowed || []));
         blockedPatterns.push(...(parsed.blockedPatterns || []));
         allowedPatterns.push(...(parsed.allowedPatterns || []));
         cosmeticRules.push(...(parsed.cosmeticRules || []));

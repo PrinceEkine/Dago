@@ -47,10 +47,10 @@ const BLOCKED_DOMAINS = [
 // duplicated per-session, so every open tab picks up subscription updates
 // immediately - `isBlocked` reads this live rather than a snapshot.
 const dynamicBlocklist = {
-  domains: new Set(),
-  allowedDomains: new Set(),
-  blockedPatterns: [], // compiled RegExp[]
-  allowedPatterns: [], // compiled RegExp[]
+  domains: [], // { domain, thirdParty }[]
+  allowedDomains: [], // { domain, thirdParty }[]
+  blockedPatterns: [], // compiled pattern objects, each carrying .thirdParty
+  allowedPatterns: [], // compiled pattern objects, each carrying .thirdParty
   cosmeticRules: [], // { domains: string[]|null, selector: string }
 };
 
@@ -63,6 +63,38 @@ function matchesAnyDomain(hostname, domainSet) {
     if (matchesDomain(hostname, domain)) return true;
   }
   return false;
+}
+
+// A handful of common multi-label public suffixes, so registrableDomain()
+// doesn't treat "example.co.uk" as the registrable domain "co.uk" (which
+// would make it match every other .co.uk site). Not a full Public Suffix
+// List - just enough to avoid the most common false positives; anything
+// outside this short list falls back to a plain last-two-labels guess.
+const MULTI_LABEL_SUFFIXES = new Set([
+  'co.uk', 'org.uk', 'gov.uk', 'ac.uk', 'co.jp', 'co.kr', 'co.nz', 'co.za',
+  'com.au', 'com.br', 'com.cn', 'com.mx', 'com.tr', 'com.sg',
+]);
+
+function registrableDomain(hostname) {
+  const parts = hostname.split('.').filter(Boolean);
+  if (parts.length <= 2) return hostname;
+  const lastTwo = parts.slice(-2).join('.');
+  if (MULTI_LABEL_SUFFIXES.has(lastTwo) && parts.length > 2) return parts.slice(-3).join('.');
+  return lastTwo;
+}
+
+/**
+ * Whether `requestHostname` counts as a different site than `topHostname` -
+ * the standard meaning of Adblock Plus's `$third-party` filter option, which
+ * a huge share of real-world EasyList/EasyPrivacy rules are scoped with
+ * specifically so they only ever touch embedded ads/trackers and never a
+ * site's own first-party content. Returns null if either hostname is
+ * missing, meaning "unknown" rather than a yes/no answer - callers decide
+ * what unknown should default to (see isBlocked).
+ */
+function isThirdPartyRequest(requestHostname, topHostname) {
+  if (!requestHostname || !topHostname) return null;
+  return registrableDomain(requestHostname) !== registrableDomain(topHostname);
 }
 
 /**
@@ -115,7 +147,7 @@ function globSegmentsMatch(text, segments, anchorStart, anchorEnd) {
  * a remaining glob to run against just the path+query - decomposing it this
  * way means the glob matcher above never has to reason about hostnames.
  */
-function compileGlobPattern(rawPattern) {
+function compileGlobPattern(rawPattern, { thirdParty = false } = {}) {
   let pattern = rawPattern;
   let domain = null;
   let anchorStart = false;
@@ -156,10 +188,11 @@ function compileGlobPattern(rawPattern) {
   // assume - only needs to serve a single line like `@@|` to trigger that.
   // Fail safe here: treat a degenerate pattern as matching nothing instead.
   if (domain === null && !hasLiteralContent) {
-    return { test: () => false };
+    return { thirdParty, test: () => false };
   }
 
   return {
+    thirdParty,
     test(url) {
       if (domain !== null) {
         let parsed;
@@ -177,17 +210,23 @@ function compileGlobPattern(rawPattern) {
   };
 }
 
-/** Replaces the subscription-sourced block/allow/cosmetic data. */
+/**
+ * Replaces the subscription-sourced block/allow/cosmetic data. `domains`/
+ * `allowedDomains` are `{ domain, thirdParty }[]`, and `blockedPatterns`/
+ * `allowedPatterns` are `{ pattern, thirdParty }[]` - see filter-list-store.js
+ * for where the `$third-party` option is actually parsed out of a filter
+ * list line.
+ */
 function setDynamicBlocklist({ domains, allowedDomains, blockedPatterns = [], allowedPatterns = [], cosmeticRules = [] }) {
   dynamicBlocklist.domains = domains;
   dynamicBlocklist.allowedDomains = allowedDomains;
   dynamicBlocklist.cosmeticRules = cosmeticRules;
 
-  const compile = (patterns) => {
+  const compile = (entries) => {
     const compiled = [];
-    for (const p of patterns) {
+    for (const entry of entries) {
       try {
-        compiled.push(compileGlobPattern(p));
+        compiled.push(compileGlobPattern(entry.pattern, { thirdParty: entry.thirdParty }));
       } catch (err) {
         // skip a pattern that fails to compile rather than fail the whole list
       }
@@ -198,27 +237,86 @@ function setDynamicBlocklist({ domains, allowedDomains, blockedPatterns = [], al
   dynamicBlocklist.allowedPatterns = compile(allowedPatterns);
 }
 
-function matchesAnyPattern(url, patterns) {
-  return patterns.some((p) => p.test(url));
+/**
+ * Finds a matching entry in a `{ domain, thirdParty }[]` list, or null.
+ * `thirdParty` on the returned entry tells the caller whether the rule is
+ * `$third-party`-scoped - see shouldApplyRule() for what that means for
+ * whether the rule actually fires on this particular request.
+ */
+function findMatchingDomainEntry(hostname, entries) {
+  for (const entry of entries) {
+    if (matchesDomain(hostname, entry.domain)) return entry;
+  }
+  return null;
 }
 
-function isBlocked(url) {
+function findMatchingPattern(url, patterns) {
+  for (const p of patterns) {
+    if (p.test(url)) return p;
+  }
+  return null;
+}
+
+/**
+ * Decides whether a rule scoped with `$third-party` actually applies to this
+ * particular request. `thirdPartyStatus` is the result of
+ * isThirdPartyRequest(): true (cross-site, rule applies), false (same site,
+ * rule is skipped - this is the whole point of the option: don't block a
+ * site's own first-party content just because some embedded-ad rule
+ * happens to also match its path/domain), or null (couldn't be determined -
+ * falls back to applying the rule, i.e. today's pre-$third-party behavior,
+ * so subresource blocking outside the specific case this was added for is
+ * unaffected).
+ */
+function shouldApplyRule(ruleIsThirdPartyOnly, thirdPartyStatus) {
+  if (!ruleIsThirdPartyOnly) return true;
+  return thirdPartyStatus !== false;
+}
+
+/**
+ * `context.resourceType`/`context.topUrl` let $third-party-scoped rules (the
+ * majority of real EasyList/EasyPrivacy entries) apply only to genuinely
+ * cross-site ad/tracker requests instead of a site's own first-party
+ * content - without this, subscribing to a full list will routinely block
+ * a site's own page/assets whenever their path or domain happens to also
+ * match a rule that was only ever meant to catch third-party embeds. A
+ * top-level navigation (`resourceType === 'mainFrame'`) with no prior
+ * `topUrl` to compare against is treated as first-party to itself - the
+ * same convention real ad-blockers use, since there's no "other site" for a
+ * page's own load to be third-party relative to.
+ */
+function isBlocked(url, context = {}) {
   try {
     const { hostname } = new URL(url);
+    const topHostname = context.topUrl ? safeHostname(context.topUrl) : null;
+    let thirdPartyStatus = isThirdPartyRequest(hostname, topHostname);
+    if (thirdPartyStatus === null && context.resourceType === 'mainFrame') thirdPartyStatus = false;
 
     // Exceptions always win, matching how Adblock Plus-style engines treat
     // @@ rules - an allow rule overrides any block rule, not just ones from
     // the same list.
-    if (matchesAnyDomain(hostname, dynamicBlocklist.allowedDomains)) return false;
-    if (matchesAnyPattern(url, dynamicBlocklist.allowedPatterns)) return false;
+    const allowedDomainEntry = findMatchingDomainEntry(hostname, dynamicBlocklist.allowedDomains);
+    if (allowedDomainEntry && shouldApplyRule(allowedDomainEntry.thirdParty, thirdPartyStatus)) return false;
+    const allowedPattern = findMatchingPattern(url, dynamicBlocklist.allowedPatterns);
+    if (allowedPattern && shouldApplyRule(allowedPattern.thirdParty, thirdPartyStatus)) return false;
 
     if (BLOCKED_DOMAINS.some((domain) => matchesDomain(hostname, domain))) return true;
-    if (matchesAnyDomain(hostname, dynamicBlocklist.domains)) return true;
-    if (matchesAnyPattern(url, dynamicBlocklist.blockedPatterns)) return true;
+    const blockedDomainEntry = findMatchingDomainEntry(hostname, dynamicBlocklist.domains);
+    if (blockedDomainEntry && shouldApplyRule(blockedDomainEntry.thirdParty, thirdPartyStatus)) return true;
+    const blockedPattern = findMatchingPattern(url, dynamicBlocklist.blockedPatterns);
+    if (blockedPattern && shouldApplyRule(blockedPattern.thirdParty, thirdPartyStatus)) return true;
 
     return false;
   } catch (err) {
     return false;
+  }
+}
+
+function safeHostname(url) {
+  try {
+    return new URL(url).hostname;
+  } catch (err) {
+    return null;
   }
 }
 
@@ -244,7 +342,14 @@ function getCosmeticRulesForHost(hostname) {
 function attachAdblock(session, { enabled = true } = {}) {
   const state = { enabled };
   session.webRequest.onBeforeRequest((details, callback) => {
-    if (state.enabled && isBlocked(details.url)) {
+    // details.frame is the frame that initiated the request; .top walks up
+    // to the current top-level document, which is what $third-party rules
+    // compare against. Both can be undefined (frame torn down mid-request,
+    // or Electron simply not populating it in some cases) - isBlocked()
+    // treats a missing topUrl as "unknown" rather than guessing.
+    let topUrl = null;
+    try { topUrl = details.frame?.top?.url || null; } catch (err) { topUrl = null; }
+    if (state.enabled && isBlocked(details.url, { resourceType: details.resourceType, topUrl })) {
       callback({ cancel: true });
       return;
     }

@@ -71,9 +71,18 @@ sequential `String.prototype.indexOf` scanning - an earlier RegExp-based
 version turned out to have a real ReDoS vulnerability despite looking safe
 on paper (see [`SECURITY.md`](../SECURITY.md) for the full story). Raw
 `/regex/` filters from a subscription are still rejected outright rather
-than compiled, and request-type options (`$third-party`, `$script`, etc.)
-aren't implemented - only address matching. A full Adblock Plus rule engine
-remains tracked in `docs/ROADMAP.md`.
+than compiled, and most request-type/context options (`$script`, `$xhr`,
+`$domain=`, etc.) still aren't implemented - only address matching. The one
+option that IS implemented is `$third-party`: a rule scoped with it only
+fires when the request's registrable domain differs from the current tab's
+top-level page (via `webRequest`'s `details.frame.top.url`), the same
+convention real ad-blockers use so a subscription's ad/tracker rules don't
+also catch a site's own first-party content. This was added specifically
+because ignoring it entirely caused real, reported breakage (see
+[`SECURITY.md`](../SECURITY.md)) - most EasyList/EasyPrivacy rules use this
+option, so skipping it made a full subscription meaningfully more
+trigger-happy than intended. A full Adblock Plus rule engine (the remaining
+options) remains tracked in `docs/ROADMAP.md`.
 
 ## Screensharing data path
 
