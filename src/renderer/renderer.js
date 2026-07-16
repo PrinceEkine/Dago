@@ -50,7 +50,12 @@ async function createTab(initialUrl) {
 
   const webview = document.createElement('webview');
   webview.setAttribute('partition', partition);
-  webview.setAttribute('allowpopups', 'false');
+  // Deliberately NOT setting the `allowpopups` attribute here. It is a
+  // boolean attribute: Electron only checks for its *presence*, so the
+  // earlier `allowpopups="false"` was actually ENABLING popups - the exact
+  // opposite of its intent. Leaving it off disables popups at the engine
+  // level, and the main process additionally enforces the block via
+  // setWindowOpenHandler (see main.js), which page content can't bypass.
   webview.src = initialUrl || NEW_TAB_URL;
   webviewHost.appendChild(webview);
 
@@ -82,20 +87,10 @@ async function createTab(initialUrl) {
     if (tab.id === activeTabId) reloadBtn.innerHTML = '&#8635;';
     updateNavButtons();
   });
-  // Popups are blocked by default, full stop - not opened in a background
-  // tab, not shown as a "blocked, click to allow" prompt. Ad networks on
-  // aggregator/streaming sites routinely trigger window.open() popunders
-  // from a click anywhere on the page (a video player's own "play" button,
-  // for instance), and earlier this simply opened whatever the popup asked
-  // for as a new tab - which defeated `allowpopups="false"` above rather
-  // than enforcing it, and is exactly the "ad opened a new tab and
-  // redirected me" behavior this is meant to prevent. The real trade-off:
-  // legitimate uses of window.open() (OAuth login popups, "open in new
-  // window" buttons) won't work either. See docs/ROADMAP.md for a possible
-  // future per-site allow list instead of an all-or-nothing block.
-  webview.addEventListener('new-window', (e) => {
-    console.log(`Blocked popup: ${e.url}`);
-  });
+  // Note: there is intentionally no popup handling here. The webview
+  // `new-window` event this renderer previously listened to was removed
+  // from Electron years ago and never fired - popup blocking lives in the
+  // main process (main.js, setWindowOpenHandler) where it actually works.
 
   activateTab(id);
   return tab;

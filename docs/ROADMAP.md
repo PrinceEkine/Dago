@@ -47,8 +47,12 @@ the README).
       blocking) and, importantly, why it is explicitly *not* a substitute
       for the independent audit below.
 - [x] Popup/popunder blocking: `window.open()` calls from tab content are
-      blocked outright instead of auto-opened as a new tab, closing a real
-      ad-popunder-and-redirect bug found during manual testing; plus
+      denied via a main-process `setWindowOpenHandler`, closing a real
+      ad-popunder-and-redirect bug found during manual testing (it took two
+      tries - the first fix targeted a webview event that no longer exists
+      in modern Electron and never fired; see `SECURITY.md`); plus WebRTC
+      in tabs restricted to proxied transports so page scripts can't learn
+      the real IP via STUN while Tor-routed; plus
       `Sec-CH-UA*` Client Hints (headers and `navigator.userAgentData` in
       JS) normalized to match the spoofed `User-Agent`, closing a
       fingerprint inconsistency traced to a real Cloudflare challenge wall

@@ -162,6 +162,32 @@ app.on('will-quit', () => {
 // are allowed through. This is defense in depth on top of the getUserMedia
 // override injected by privacy-preload.js into every tab.
 app.on('web-contents-created', (event, contents) => {
+  if (contents.getType() === 'webview') {
+    // Popup blocking, enforced where page content can't reach it. Two traps
+    // made earlier renderer-side attempts silently ineffective: <webview>'s
+    // `allowpopups` is a boolean attribute (setting it to the string "false"
+    // still ENABLES popups - Electron only checks for its presence), and the
+    // webview `new-window` event was removed from Electron long ago, so a
+    // listener on it never fires. setWindowOpenHandler is the authoritative
+    // modern mechanism. Trade-off: legitimate window.open() uses (OAuth
+    // login popups, "open in new window" buttons) are blocked too - a
+    // per-site allow-list is tracked in docs/ROADMAP.md.
+    contents.setWindowOpenHandler(({ url }) => {
+      console.log(`[dago] blocked popup from tab content: ${url}`);
+      return { action: 'deny' };
+    });
+
+    // WebRTC does not go through the tab's SOCKS proxy, so page scripts
+    // could otherwise learn the machine's real IP via a STUN binding request
+    // even while the tab's HTTP traffic is Tor-routed (ad/tracking scripts
+    // actively do this). Restrict tab WebRTC to proxied transports only;
+    // since Tor's SOCKS proxy carries no UDP, this effectively disables
+    // WebRTC-based IP discovery in tabs. Dago's own Screenshare window is a
+    // regular BrowserWindow, not a webview, so it keeps normal WebRTC
+    // behavior.
+    contents.setWebRTCIPHandlingPolicy('disable_non_proxied_udp');
+  }
+
   contents.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
     if (permission === 'media') {
       const wantsVideo = !details.mediaTypes || details.mediaTypes.includes('video');
