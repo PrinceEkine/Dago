@@ -37,7 +37,7 @@ privacy layer instead of reinventing HTML/CSS/JS rendering.
 
 | Concern | Mechanism | File |
 |---|---|---|
-| Anonymized routing | Spawns the system `tor` daemon with N isolated `SocksPort`s; each tab is pinned to one, so tabs don't share circuits the way default Tor Browser tabs can | `src/main/tor-manager.js` |
+| Anonymized routing | Spawns a `tor` daemon with N isolated `SocksPort`s; each tab is pinned to one, so tabs don't share circuits the way default Tor Browser tabs can. The binary is resolved in order: a maintainer-bundled build, `tor` on PATH (a normal system install), then a detected Tor Browser install as a fallback (Tor Browser bundles its own private `tor` but deliberately keeps it off PATH, which otherwise makes Dago wrongly report Tor as "not installed" for the very common case of a user who only has Tor Browser) | `src/main/tor-manager.js` |
 | New identity | Sends `SIGNAL NEWNYM` over Tor's control port | `src/main/tor-manager.js` |
 | Tracker/ad blocking | `webRequest.onBeforeRequest` cancels requests to a known tracker/ad domain list, per tab session; the list is a static built-in set merged live with any enabled filter-list subscriptions | `src/main/adblock.js` |
 | Filter list subscriptions | User-added EasyList/EasyPrivacy-style URLs, fetched and parsed only on explicit "Update" (never automatically), cached to disk, and merged into the shared blocklist that all tab sessions read from | `src/main/filter-list-store.js` |

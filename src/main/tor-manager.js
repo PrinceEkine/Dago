@@ -3,6 +3,7 @@
 const { spawn } = require('child_process');
 const net = require('net');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const NUM_ISOLATED_PORTS = 6;
@@ -25,6 +26,70 @@ function bundledTorPath() {
   return fs.existsSync(candidate) ? candidate : null;
 }
 
+/**
+ * Tor Browser bundles its own private copy of `tor`, but deliberately does
+ * NOT put it on PATH - it's meant to be launched only by Tor Browser itself,
+ * not used as a general system service. That means a user who already has
+ * Tor Browser installed (very common - it's how most people first get Tor)
+ * still gets "Tor: unavailable" from a plain PATH lookup, which is
+ * confusing when Tor so clearly *is* on their machine. These are the
+ * well-known default install locations for each OS; if the official
+ * installer/extractor was used with defaults, one of these exists.
+ */
+function torBrowserCandidatePaths() {
+  const home = os.homedir();
+  if (process.platform === 'win32') {
+    return [
+      path.join(home, 'Desktop', 'Tor Browser', 'Browser', 'TorBrowser', 'Tor', 'tor.exe'),
+      path.join(home, 'Downloads', 'Tor Browser', 'Browser', 'TorBrowser', 'Tor', 'tor.exe'),
+      'C:\\Program Files\\Tor Browser\\Browser\\TorBrowser\\Tor\\tor.exe',
+      'C:\\Program Files (x86)\\Tor Browser\\Browser\\TorBrowser\\Tor\\tor.exe',
+    ];
+  }
+  if (process.platform === 'darwin') {
+    return [
+      '/Applications/Tor Browser.app/Contents/Resources/TorBrowser/Tor/tor',
+      path.join(home, 'Applications', 'Tor Browser.app', 'Contents', 'Resources', 'TorBrowser', 'Tor', 'tor'),
+    ];
+  }
+  // Linux: the official tarball is usually extracted straight to the home
+  // directory; torbrowser-launcher (common on Debian/Ubuntu/Fedora) installs
+  // under ~/.local/share/torbrowser instead.
+  return [
+    path.join(home, 'tor-browser', 'Browser', 'TorBrowser', 'Tor', 'tor'),
+    path.join(home, 'tor-browser_en-US', 'Browser', 'TorBrowser', 'Tor', 'tor'),
+    path.join(home, '.local', 'share', 'torbrowser', 'tbb', 'x86_64', 'tor-browser', 'Browser', 'TorBrowser', 'Tor', 'tor'),
+    path.join(home, '.local', 'share', 'torbrowser', 'tbb', 'i686', 'tor-browser', 'Browser', 'TorBrowser', 'Tor', 'tor'),
+    '/opt/tor-browser/Browser/TorBrowser/Tor/tor',
+  ];
+}
+
+function findTorBrowserBinary() {
+  return torBrowserCandidatePaths().find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+/**
+ * On Linux and macOS, Tor Browser ships its own private copies of libevent/
+ * OpenSSL alongside the `tor` binary specifically so it doesn't depend on
+ * (and potentially conflict with) whatever the system has installed. Its own
+ * launcher sets the dynamic linker's search path to that directory before
+ * running it; spawning the binary directly without doing the same can fail
+ * to find those libraries. Only needed for paths we located ourselves
+ * (bundled or Tor-Browser-detected) - a plain `tor` resolved from PATH is
+ * assumed to be a normal system package that resolves its own libraries.
+ */
+function envForTorBinary(torBinaryPath) {
+  if (torBinaryPath === 'tor') return process.env;
+  const dir = path.dirname(torBinaryPath);
+  const env = { ...process.env };
+  if (process.platform === 'linux') {
+    env.LD_LIBRARY_PATH = env.LD_LIBRARY_PATH ? `${dir}:${env.LD_LIBRARY_PATH}` : dir;
+  } else if (process.platform === 'darwin') {
+    env.DYLD_LIBRARY_PATH = env.DYLD_LIBRARY_PATH ? `${dir}:${env.DYLD_LIBRARY_PATH}` : dir;
+  }
+  return env;
+}
+
 class TorManager {
   constructor(userDataDir) {
     this.userDataDir = userDataDir;
@@ -36,18 +101,37 @@ class TorManager {
     this.ports = [];
     for (let i = 0; i < NUM_ISOLATED_PORTS; i++) this.ports.push(SOCKS_BASE_PORT + i);
     this.nextPortIndex = 0;
-    this.torBinary = bundledTorPath() || 'tor';
+    // Preference order: a maintainer-fetched bundled binary, then whatever
+    // `tor` resolves to on PATH (a normal system install), then a detected
+    // Tor Browser install as a last resort - it works fine as a plain Tor
+    // daemon, but PATH/system installs are more likely to stay up to date
+    // via the OS's own package manager.
+    this.torBinaryCandidates = [bundledTorPath(), 'tor', findTorBrowserBinary()].filter(Boolean);
+    this.torBinary = this.torBinaryCandidates[0];
+    this.torBinarySource = null;
   }
 
-  /** Returns true if a tor binary (bundled or on PATH) is usable. */
+  /**
+   * Probes each candidate binary in order and remembers the first one that
+   * actually runs, so `start()` doesn't have to repeat this search. Returns
+   * true if any candidate is usable.
+   */
   async isTorInstalled() {
-    return new Promise((resolve) => {
-      const probe = spawn(this.torBinary, ['--version']);
-      let ok = false;
-      probe.on('error', () => resolve(false));
-      probe.stdout.on('data', () => { ok = true; });
-      probe.on('close', () => resolve(ok));
-    });
+    for (const candidate of this.torBinaryCandidates) {
+      const works = await new Promise((resolve) => {
+        const probe = spawn(candidate, ['--version'], { env: envForTorBinary(candidate) });
+        let ok = false;
+        probe.on('error', () => resolve(false));
+        probe.stdout.on('data', () => { ok = true; });
+        probe.on('close', () => resolve(ok));
+      });
+      if (works) {
+        this.torBinary = candidate;
+        this.torBinarySource = candidate === 'tor' ? 'path' : (candidate === bundledTorPath() ? 'bundled' : 'tor-browser');
+        return true;
+      }
+    }
+    return false;
   }
 
   _writeTorrc() {
@@ -79,7 +163,7 @@ class TorManager {
     this._writeTorrc();
 
     return new Promise((resolve) => {
-      this.process = spawn(this.torBinary, ['-f', this.torrcPath]);
+      this.process = spawn(this.torBinary, ['-f', this.torrcPath], { env: envForTorBinary(this.torBinary) });
       let settled = false;
 
       const onData = (buf) => {
@@ -87,7 +171,7 @@ class TorManager {
         if (text.includes('Bootstrapped 100%')) {
           this.available = true;
           this.bootstrapped = true;
-          if (!settled) { settled = true; resolve({ available: true }); }
+          if (!settled) { settled = true; resolve({ available: true, source: this.torBinarySource }); }
         }
       };
 

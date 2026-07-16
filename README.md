@@ -66,7 +66,7 @@ doesn't run on mobile:
 |---|---|
 | Tabbed browsing, address bar, navigation | Working |
 | Configurable search engine | Working (DuckDuckGo, Startpage, Brave Search, or Mojeek by default; add your own https:// URL with a `%s` query placeholder in Settings) |
-| Tor routing with per-tab isolated circuits + "New Identity" | Working (requires system Tor install - see below) |
+| Tor routing with per-tab isolated circuits + "New Identity" | Working (needs a system Tor install *or* a detected Tor Browser install - see below) |
 | Built-in tracker/ad blocking | Working (curated domain list) |
 | EasyList/EasyPrivacy subscriptions | Working (add any https:// filter list URL in Settings - domain, path/wildcard, and cosmetic/element-hiding rules; see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's still not implemented) |
 | Fingerprint resistance (canvas/WebGL/timezone/UA, including Client Hints) | Working, best-effort |
@@ -84,10 +84,20 @@ What this alpha actually protects against (and what it doesn't):
 
 ## Getting started
 
-Requirements: [Node.js](https://nodejs.org/) 18+, and optionally the
-[`tor`](https://www.torproject.org/) daemon installed and on your `PATH` for
-onion routing (Dago runs without it, just without Tor circuits - the status
-bar tells you which mode you're in).
+Requirements: [Node.js](https://nodejs.org/) 18+, and Tor for onion routing
+(Dago runs without it, just without Tor circuits - the status bar tells you
+which mode you're in). Dago looks for Tor in this order, so you don't
+necessarily need a separate install:
+
+1. A system-wide [`tor`](https://www.torproject.org/) daemon on your `PATH`.
+2. A [Tor Browser](https://www.torproject.org/download/) install at its
+   default location, if you already have one - Tor Browser bundles its own
+   copy of `tor` but keeps it off PATH by design (it's meant to be launched
+   only by Tor Browser), so Dago detects common install paths itself instead
+   of requiring you to install Tor twice.
+
+If neither is found, the status bar shows "Tor: unavailable" and tabs fall
+back to a direct (non-Tor) connection.
 
 ```bash
 npm install
@@ -126,8 +136,9 @@ CI (`.github/workflows/build.yml`) and Tor-binary-bundling groundwork
 wired up yet: there are no code-signing certificates configured (that costs
 real money - see below), and no Tor binaries are bundled because this
 project's own dev environment has no network access to fetch and verify
-them. Builds today are unsigned, and onion routing still requires a system
-Tor install. `docs/RELEASING.md` and `docs/ROADMAP.md` cover what's left.
+them. Builds today are unsigned, and onion routing still requires either a
+system Tor install or an existing Tor Browser install for Dago to detect.
+`docs/RELEASING.md` and `docs/ROADMAP.md` cover what's left.
 
 ## Support Dago
 
