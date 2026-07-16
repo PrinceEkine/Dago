@@ -69,7 +69,8 @@ doesn't run on mobile:
 | Tor routing with per-tab isolated circuits + "New Identity" | Working (requires system Tor install - see below) |
 | Built-in tracker/ad blocking | Working (curated domain list) |
 | EasyList/EasyPrivacy subscriptions | Working (add any https:// filter list URL in Settings - domain, path/wildcard, and cosmetic/element-hiding rules; see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's still not implemented) |
-| Fingerprint resistance (canvas/WebGL/timezone/UA) | Working, best-effort |
+| Fingerprint resistance (canvas/WebGL/timezone/UA, including Client Hints) | Working, best-effort |
+| Popup blocking (blocks `window.open()`-based popups/popunders by default) | Working - trade-off: legitimate popups like OAuth logins are blocked too, see [`docs/ROADMAP.md`](docs/ROADMAP.md) |
 | No-camera policy (video calls disabled everywhere) | Working |
 | Screensharing (screen-only, peer-to-peer, room code) | Working (needs a signaling server - one-command to self-host) |
 | Optional TURN relay for screensharing | Working (configure in Settings; "force relay" hides both peers' public IPs) |

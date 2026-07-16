@@ -52,6 +52,29 @@ because "we reviewed our own code and it's fine" is a much weaker claim than
 self-review is still just that, self-review, and it does not substitute for
 an independent audit by people with no stake in the outcome.
 
+- **Found in the field, and the first fix didn't work either**: popup
+  blocking was ineffective from the very first commit until it was reported
+  from real-world use (an ad popunder opened a new tab and redirected to a
+  shopping site). Root cause one: the webview tag was created with
+  `allowpopups="false"`, but `allowpopups` is a presence-checked boolean
+  attribute in Electron - setting it to the string `"false"` still *enables*
+  popups, the exact opposite of the intent. Root cause two: the first
+  attempted fix listened for the webview's `new-window` event, which was
+  removed from Electron years before the version this project uses - the
+  handler could never fire, so the "fix" changed nothing, and only a second
+  field report revealed that. The working fix removes the `allowpopups`
+  attribute entirely (popups are disabled by default when it's absent) and
+  additionally denies all window creation from tab content in the main
+  process via `setWindowOpenHandler`, which page content cannot reach.
+  Lesson worth stating plainly: the first fix was verified with syntax
+  checks and unrelated regression tests, but the popup path itself was
+  never exercised end-to-end - this dev environment can't launch Electron
+  (its binary host is blocked), and that verification gap is exactly where
+  the bug survived. The same field report also surfaced that tab WebRTC
+  bypassed the Tor SOCKS proxy (STUN requests from ad scripts were visible
+  in the user's logs), a real-IP-discovery vector now closed with
+  `setWebRTCIPHandlingPolicy('disable_non_proxied_udp')`.
+
 ## Android app caveat
 
 `android/`'s shared `:logic` module ports the same glob-matching and

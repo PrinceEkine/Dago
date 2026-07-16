@@ -29,6 +29,31 @@ protect you identically.
   OS keychain; viewing it in-app additionally requires a PIN.
 - **Being pulled into an unwanted video/voice call** - the camera can't be
   activated by any site or script, in this browser, by design.
+- **Popup/popunder ad redirects** - `window.open()` from tab content is
+  denied in the main process (`setWindowOpenHandler`), where a page can't
+  interfere with it. Worth being honest about the history here: two earlier
+  attempts at this block didn't actually work - `allowpopups="false"` on the
+  webview tag *enables* popups (it's a presence-checked boolean attribute),
+  and a `new-window` event listener never fired because that event no longer
+  exists in modern Electron. Both are disclosed in `SECURITY.md`. The block
+  is a real trade-off, not free: legitimate popups (OAuth login windows,
+  "open in new window" buttons) are blocked too. There's no per-site
+  allow-list yet - see `docs/ROADMAP.md`.
+- **WebRTC IP leaks in tabs** - WebRTC traffic bypasses the SOCKS proxy tabs
+  use for Tor, so without protection a page script could learn your real IP
+  with a STUN request even while "Tor: connected" is showing (ad/tracking
+  scripts do exactly this in the wild). Tab WebRTC is now restricted to
+  proxied transports only, which - Tor carrying no UDP - effectively
+  disables WebRTC-based IP discovery inside tabs. Dago's own screenshare
+  feature runs in its own window, not a tab, and is unaffected.
+- **Header/JS User-Agent mismatches that trip bot-detection walls** - the
+  `Sec-CH-UA*` Client Hints (both the HTTP headers and
+  `navigator.userAgentData` in JS) are normalized to match the spoofed
+  `User-Agent`. Found by hitting a real Cloudflare "verify you are human"
+  challenge in manual testing and tracing it to exactly this kind of
+  inconsistency - a good example of why "best-effort" fingerprint
+  resistance needs to cover a signal *and* the related signals around it,
+  not just the obvious one.
 
 ## What Dago does NOT currently defend against (known gaps)
 

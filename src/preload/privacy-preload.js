@@ -174,6 +174,44 @@
   safeDefine(Navigator.prototype, 'hardwareConcurrency', () => 4);
   safeDefine(Navigator.prototype, 'deviceMemory', () => 8);
 
+  // --- User-Agent Client Hints (JS-visible, not just the HTTP headers
+  // main.js normalizes) - navigator.userAgentData.brands/platform and
+  // getHighEntropyValues() can reveal the real Chromium version/platform
+  // even when the User-Agent string itself is spoofed, which is exactly the
+  // kind of header-vs-JS mismatch that trips bot-detection systems like
+  // Cloudflare (see docs/THREAT_MODEL.md). ---
+  try {
+    if (navigator.userAgentData) {
+      const brands = [
+        { brand: 'Not.A/Brand', version: '8' },
+        { brand: 'Chromium', version: '124' },
+        { brand: 'Google Chrome', version: '124' },
+      ];
+      safeDefine(Navigator.prototype, 'userAgentData', () => ({
+        brands,
+        mobile: false,
+        platform: 'Windows',
+        getHighEntropyValues: (hints) =>
+          Promise.resolve(
+            Object.fromEntries(
+              [
+                ['brands', brands],
+                ['mobile', false],
+                ['platform', 'Windows'],
+                ['platformVersion', '10.0.0'],
+                ['architecture', 'x86'],
+                ['bitness', '64'],
+                ['model', ''],
+                ['uaFullVersion', '124.0.0.0'],
+                ['fullVersionList', brands.map((b) => ({ ...b, version: `${b.version}.0.0.0` }))],
+              ].filter(([key]) => !hints || hints.includes(key))
+            )
+          ),
+        toJSON: () => ({ brands, mobile: false, platform: 'Windows' }),
+      }));
+    }
+  } catch (err) { /* non-fatal */ }
+
   // --- Screen/viewport size rounding (coarse "letterboxing"-style bucketing,
   // like Tor Browser's window-size quantization). Read once at page-load time
   // since these preloads run per-navigation; JS reads get the bucketed value,

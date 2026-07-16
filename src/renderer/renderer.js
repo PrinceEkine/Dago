@@ -50,7 +50,12 @@ async function createTab(initialUrl) {
 
   const webview = document.createElement('webview');
   webview.setAttribute('partition', partition);
-  webview.setAttribute('allowpopups', 'false');
+  // Deliberately NOT setting the `allowpopups` attribute here. It is a
+  // boolean attribute: Electron only checks for its *presence*, so the
+  // earlier `allowpopups="false"` was actually ENABLING popups - the exact
+  // opposite of its intent. Leaving it off disables popups at the engine
+  // level, and the main process additionally enforces the block via
+  // setWindowOpenHandler (see main.js), which page content can't bypass.
   webview.src = initialUrl || NEW_TAB_URL;
   webviewHost.appendChild(webview);
 
@@ -82,9 +87,10 @@ async function createTab(initialUrl) {
     if (tab.id === activeTabId) reloadBtn.innerHTML = '&#8635;';
     updateNavButtons();
   });
-  webview.addEventListener('new-window', (e) => {
-    createTab(e.url);
-  });
+  // Note: there is intentionally no popup handling here. The webview
+  // `new-window` event this renderer previously listened to was removed
+  // from Electron years ago and never fired - popup blocking lives in the
+  // main process (main.js, setWindowOpenHandler) where it actually works.
 
   activateTab(id);
   return tab;
