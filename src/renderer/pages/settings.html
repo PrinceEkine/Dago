@@ -25,6 +25,22 @@
     </div>
 
     <div style="margin-top:20px">
+      <div class="setting-label" style="font-weight:600">Search engine</div>
+      <p style="margin-top:4px">
+        Used when you type a search query (rather than a URL) into the
+        address bar. Add your own with any https:// URL that contains
+        <code>%s</code> as the query placeholder.
+      </p>
+      <ul id="search-provider-list" style="list-style:none;padding:0;margin:8px 0"></ul>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input id="new-provider-name" type="text" placeholder="Name" style="flex:1" />
+        <input id="new-provider-url" type="text" placeholder="https://example.com/search?q=%s" style="flex:2" />
+        <button id="add-provider-btn">Add</button>
+      </div>
+      <p id="search-provider-error" class="error"></p>
+    </div>
+
+    <div style="margin-top:20px">
       <div class="header-row">
         <div class="setting-label" style="font-weight:600">Filter list subscriptions</div>
         <button id="update-all-lists-btn">Update all</button>

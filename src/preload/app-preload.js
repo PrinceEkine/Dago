@@ -74,4 +74,12 @@ contextBridge.exposeInMainWorld('dago', {
     openFile: (id) => ipcRenderer.invoke('downloads:open-file', id),
     showInFolder: (id) => ipcRenderer.invoke('downloads:show-in-folder', id),
   },
+
+  search: {
+    list: () => ipcRenderer.invoke('search:list'),
+    setActive: (id) => ipcRenderer.invoke('search:set-active', id),
+    add: (name, urlTemplate) => ipcRenderer.invoke('search:add', { name, urlTemplate }),
+    remove: (id) => ipcRenderer.invoke('search:remove', id),
+    buildUrl: (query) => ipcRenderer.invoke('search:build-url', query),
+  },
 });

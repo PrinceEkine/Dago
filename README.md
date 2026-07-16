@@ -65,6 +65,7 @@ doesn't run on mobile:
 | Feature | Status |
 |---|---|
 | Tabbed browsing, address bar, navigation | Working |
+| Configurable search engine | Working (DuckDuckGo, Startpage, Brave Search, or Mojeek by default; add your own https:// URL with a `%s` query placeholder in Settings) |
 | Tor routing with per-tab isolated circuits + "New Identity" | Working (requires system Tor install - see below) |
 | Built-in tracker/ad blocking | Working (curated domain list) |
 | EasyList/EasyPrivacy subscriptions | Working (add any https:// filter list URL in Settings - domain, path/wildcard, and cosmetic/element-hiding rules; see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's still not implemented) |

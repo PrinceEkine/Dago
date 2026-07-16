@@ -29,7 +29,7 @@ function parseAddressInput(input) {
   if (looksLikeUrl) {
     return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   }
-  return `https://duckduckgo.com/?q=${encodeURIComponent(trimmed)}`;
+  return { searchQuery: trimmed };
 }
 
 async function createTab(initialUrl) {
@@ -145,11 +145,15 @@ function updateNavButtons() {
   forwardBtn.disabled = !tab.webview.canGoForward();
 }
 
-function navigateActiveTab(destination) {
+async function navigateActiveTab(destination) {
   const tab = getActiveTab();
   if (!tab) return;
   if (destination && destination.dagoPage) {
     window.dago.windows.open(destination.dagoPage);
+    return;
+  }
+  if (destination && destination.searchQuery) {
+    tab.webview.src = await window.dago.search.buildUrl(destination.searchQuery);
     return;
   }
   tab.webview.src = destination;

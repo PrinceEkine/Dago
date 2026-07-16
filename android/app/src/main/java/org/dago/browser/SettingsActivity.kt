@@ -10,7 +10,9 @@ import java.util.concurrent.Executors
 class SettingsActivity : AppCompatActivity() {
     private lateinit var filterListRepository: FilterListRepository
     private lateinit var pinStore: PinStore
+    private lateinit var searchProviderStore: SearchProviderStore
     private lateinit var adapter: FilterListAdapter
+    private lateinit var searchProviderAdapter: SearchProviderAdapter
     private val backgroundExecutor = Executors.newSingleThreadExecutor()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,6 +21,7 @@ class SettingsActivity : AppCompatActivity() {
 
         filterListRepository = FilterListRepository(this)
         pinStore = PinStore(this)
+        searchProviderStore = SearchProviderStore(this)
 
         findViewById<android.widget.TextView>(R.id.torStatusDesc).text =
             "Each tab shares one Tor circuit on Android (see android/README.md for why this differs from desktop's per-tab isolation)."
@@ -56,6 +59,36 @@ class SettingsActivity : AppCompatActivity() {
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
 
+        val searchRecycler = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.searchProviderRecycler)
+        searchProviderAdapter = SearchProviderAdapter(
+            mutableListOf(),
+            onSelect = { provider ->
+                searchProviderStore.setActive(provider.id)
+                refreshSearchProviders()
+            },
+            onRemove = { provider ->
+                searchProviderStore.remove(provider.id)
+                refreshSearchProviders()
+            },
+        )
+        searchRecycler.layoutManager = LinearLayoutManager(this)
+        searchRecycler.adapter = searchProviderAdapter
+
+        findViewById<Button>(R.id.addProviderButton).setOnClickListener {
+            val name = findViewById<android.widget.EditText>(R.id.newProviderName).text.toString().trim()
+            val url = findViewById<android.widget.EditText>(R.id.newProviderUrl).text.toString().trim()
+            val error = findViewById<android.widget.TextView>(R.id.searchProviderError)
+            val result = searchProviderStore.add(name, url)
+            if (result.isSuccess) {
+                error.text = ""
+                findViewById<android.widget.EditText>(R.id.newProviderName).text.clear()
+                findViewById<android.widget.EditText>(R.id.newProviderUrl).text.clear()
+                refreshSearchProviders()
+            } else {
+                error.text = result.exceptionOrNull()?.message ?: "Could not add search engine."
+            }
+        }
+
         findViewById<Button>(R.id.updateAllButton).setOnClickListener { button ->
             (button as Button).isEnabled = false
             backgroundExecutor.execute {
@@ -91,9 +124,14 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         refreshList()
+        refreshSearchProviders()
     }
 
     private fun refreshList() {
         adapter.submit(filterListRepository.list())
+    }
+
+    private fun refreshSearchProviders() {
+        searchProviderAdapter.submit(searchProviderStore.list())
     }
 }

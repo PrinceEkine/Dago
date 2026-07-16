@@ -17,6 +17,7 @@ function registerIpc({
   webrtcRelayStore,
   bookmarkStore,
   downloadManager,
+  searchProviderStore,
   desktopCapturer,
   setPendingScreenShareSource,
   openUtilityWindow,
@@ -96,6 +97,14 @@ function registerIpc({
   ipcMain.handle('downloads:remove', (event, id) => downloadManager.remove(id));
   ipcMain.handle('downloads:open-file', (event, id) => downloadManager.openFile(id));
   ipcMain.handle('downloads:show-in-folder', (event, id) => downloadManager.showInFolder(id));
+
+  // --- Search provider (address bar default search engine) ---
+
+  ipcMain.handle('search:list', () => searchProviderStore.list());
+  ipcMain.handle('search:set-active', (event, id) => searchProviderStore.setActive(id));
+  ipcMain.handle('search:add', (event, { name, urlTemplate }) => searchProviderStore.add(name, urlTemplate));
+  ipcMain.handle('search:remove', (event, id) => searchProviderStore.remove(id));
+  ipcMain.handle('search:build-url', (event, query) => searchProviderStore.buildSearchUrl(query));
 
   // --- History (PIN-gated viewing; logging always on, encrypted at rest) ---
 

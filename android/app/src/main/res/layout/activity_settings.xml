@@ -45,6 +45,62 @@
             android:textColor="@color/dago_text_muted"
             android:textSize="12sp" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Search engine"
+            android:textColor="@color/dago_text"
+            android:textSize="14sp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Used when you type a search query into the address bar. Add your own with any https:// URL containing %s as the query placeholder."
+            android:textColor="@color/dago_text_muted"
+            android:textSize="12sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/searchProviderRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <EditText
+                android:id="@+id/newProviderName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Name"
+                android:textColor="@color/dago_text" />
+
+            <EditText
+                android:id="@+id/newProviderUrl"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:hint="https://example.com/search?q=%s"
+                android:textColor="@color/dago_text" />
+
+            <Button
+                android:id="@+id/addProviderButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/searchProviderError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/dago_danger" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

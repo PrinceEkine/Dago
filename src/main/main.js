@@ -10,6 +10,7 @@ const { FilterListStore } = require('./filter-list-store');
 const { WebrtcRelayStore } = require('./webrtc-relay-store');
 const { BookmarkStore } = require('./bookmark-store');
 const { DownloadManager } = require('./download-manager');
+const { SearchProviderStore } = require('./search-provider-store');
 const { registerIpc } = require('./ipc');
 
 let mainWindow;
@@ -104,6 +105,7 @@ app.whenReady().then(async () => {
   const bookmarkStore = new BookmarkStore(userDataDir);
   const downloadManager = new DownloadManager();
   downloadManager.attachToSession(session.defaultSession);
+  const searchProviderStore = new SearchProviderStore(userDataDir);
 
   session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
     if (!pendingScreenShareSourceId) {
@@ -127,6 +129,7 @@ app.whenReady().then(async () => {
     webrtcRelayStore,
     bookmarkStore,
     downloadManager,
+    searchProviderStore,
     desktopCapturer,
     setPendingScreenShareSource,
     openUtilityWindow,

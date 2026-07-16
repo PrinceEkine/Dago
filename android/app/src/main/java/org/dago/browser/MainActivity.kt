@@ -2,7 +2,6 @@ package org.dago.browser
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
@@ -24,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bookmarkStore: BookmarkStore
     private lateinit var historyStore: HistoryStore
     private lateinit var filterListRepository: FilterListRepository
+    private lateinit var searchProviderStore: SearchProviderStore
 
     private lateinit var tabStrip: RecyclerView
     private lateinit var addressBar: android.widget.EditText
@@ -57,6 +57,7 @@ class MainActivity : AppCompatActivity() {
         torController = DagoTorController(applicationContext)
         bookmarkStore = BookmarkStore(this)
         historyStore = HistoryStore(this)
+        searchProviderStore = SearchProviderStore(this)
 
         tabAdapter = TabAdapter(tabs, { activeTabId }, ::activateTab, ::closeTab)
         tabStrip.layoutManager = LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
@@ -201,7 +202,7 @@ class MainActivity : AppCompatActivity() {
         val url = when {
             trimmed.startsWith("http://") || trimmed.startsWith("https://") -> trimmed
             Regex("^[\\w-]+(\\.[\\w-]+)+").containsMatchIn(trimmed) && !trimmed.contains(" ") -> "https://$trimmed"
-            else -> "https://duckduckgo.com/?q=" + Uri.encode(trimmed)
+            else -> searchProviderStore.buildSearchUrl(trimmed)
         }
         tab.webView.loadUrl(url)
     }

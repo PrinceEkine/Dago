@@ -67,6 +67,7 @@ can't carry over unchanged. These are deliberate, documented trade-offs:
 | History PIN | scrypt-derived verifier | PBKDF2WithHmacSHA256-derived verifier (Java's built-in KDF - avoids pulling in a scrypt implementation as an unverifiable dependency here) |
 | Screensharing | Peer-to-peer WebRTC feature with optional TURN relay | **Not implemented on Android in this pass.** Screen capture on Android needs the `MediaProjection` API plus its own foreground service, which is enough of a distinct undertaking to be a separate roadmap item rather than something ported alongside everything else here. |
 | Downloads | Custom download-manager.js (Electron has no OS-level download service) | Delegates to Android's own `DownloadManager` system service - it already handles progress, retries, and notifications, so there's no need to reimplement that here. |
+| Search engine | Configurable (DuckDuckGo/Startpage/Brave Search/Mojeek + custom `%s`-template URLs), via `search-provider-store.js` | Same feature, same defaults - `SearchProviderStore.kt` (`SharedPreferences`-backed) |
 
 See `../docs/THREAT_MODEL.md` for the full privacy/security picture across
 both apps, and `../SECURITY.md` for the security self-review disclosure
