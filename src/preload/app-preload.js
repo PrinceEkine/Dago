@@ -5,6 +5,17 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('dago', {
   app: {
     getVersion: () => ipcRenderer.invoke('app:get-version'),
+    getPlatform: () => ipcRenderer.invoke('app:get-platform'),
+  },
+
+  windowControls: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximizeToggle: () => ipcRenderer.invoke('window:maximize-toggle'),
+    close: () => ipcRenderer.invoke('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+    onMaximizeChanged: (callback) => {
+      ipcRenderer.on('window:maximize-changed', (event, isMaximized) => callback(isMaximized));
+    },
   },
 
   windows: {
@@ -25,6 +36,10 @@ contextBridge.exposeInMainWorld('dago', {
 
   adblock: {
     stats: () => ipcRenderer.invoke('adblock:stats'),
+  },
+
+  favicon: {
+    fetch: (partition, url) => ipcRenderer.invoke('favicon:fetch', { partition, url }),
   },
 
   filterLists: {

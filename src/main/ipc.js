@@ -69,6 +69,30 @@ function registerIpc({
 
   ipcMain.handle('adblock:stats', () => ({ domainCount: BLOCKED_DOMAINS.length }));
 
+  const MAX_FAVICON_BYTES = 200 * 1024;
+  // Fetches a tab's favicon through that SAME tab's session - not the
+  // chrome window's own default session - so the request is Tor-routed and
+  // cookie-isolated exactly like the rest of that tab's traffic, instead of
+  // the chrome UI silently making an unrouted, unisolated request just to
+  // show an icon. Returns a data: URL so the renderer never holds a live
+  // remote URL it could accidentally re-request outside that session.
+  ipcMain.handle('favicon:fetch', async (event, { partition, url }) => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+      const ses = session.fromPartition(partition);
+      const response = await ses.fetch(url);
+      if (!response.ok) return null;
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.startsWith('image/')) return null;
+      const buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.length === 0 || buffer.length > MAX_FAVICON_BYTES) return null;
+      return `data:${contentType};base64,${buffer.toString('base64')}`;
+    } catch (err) {
+      return null;
+    }
+  });
+
   // Called from privacy-preload.js (running inside tab webviews) to fetch
   // cosmetic/element-hiding CSS selectors for the page's own hostname.
   ipcMain.handle('adblock:cosmetic-rules-for-host', (event, hostname) => getCosmeticRulesForHost(hostname));
@@ -88,6 +112,25 @@ function registerIpc({
   ipcMain.handle('webrtc:set-relay-config', (event, config) => webrtcRelayStore.set(config));
 
   ipcMain.handle('app:get-version', () => app.getVersion());
+  ipcMain.handle('app:get-platform', () => process.platform);
+
+  // Custom frameless-window controls (see main.js's createWindow - Windows/
+  // Linux get frame:false and draw their own minimize/maximize/close;
+  // macOS keeps native traffic lights via titleBarStyle and never calls
+  // these). The isDestroyed() check matters here, not just a null check:
+  // this handler closes over the mainWindow reference from registerIpc's
+  // call site, which doesn't become null the way main.js's own `mainWindow`
+  // variable does on the 'closed' event - it would otherwise still point at
+  // a destroyed BrowserWindow and throw when called.
+  const isUsableWindow = () => mainWindow && !mainWindow.isDestroyed();
+  ipcMain.handle('window:minimize', () => { if (isUsableWindow()) mainWindow.minimize(); });
+  ipcMain.handle('window:maximize-toggle', () => {
+    if (!isUsableWindow()) return;
+    if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    else mainWindow.maximize();
+  });
+  ipcMain.handle('window:close', () => { if (isUsableWindow()) mainWindow.close(); });
+  ipcMain.handle('window:is-maximized', () => isUsableWindow() && mainWindow.isMaximized());
 
   ipcMain.handle('windows:open', (event, pageName) => {
     const allowed = ['history', 'settings', 'screenshare', 'bookmarks', 'downloads'];

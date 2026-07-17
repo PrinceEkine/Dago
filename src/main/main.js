@@ -43,6 +43,16 @@ function openUtilityWindow(pageName) {
   win.on('closed', () => utilityWindows.delete(pageName));
 }
 
+// Merges the OS window frame with Dago's own tab strip, the way Chrome/Edge
+// do, instead of a native titlebar sitting above a separate custom tab row.
+// macOS keeps its native traffic-light buttons via `titleBarStyle:
+// 'hiddenInset'` (removing them entirely would be off-platform - macOS users
+// expect them); Windows/Linux get `frame: false` and Dago draws its own
+// minimize/maximize/close buttons (see index.html's `.window-controls`,
+// wired up in renderer.js via the `windowControls` preload bridge).
+const macTitleBarOptions = { titleBarStyle: 'hiddenInset' };
+const framelessOptions = { frame: false };
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -51,6 +61,7 @@ function createWindow() {
     minHeight: 480,
     backgroundColor: '#1a1b26',
     title: 'Dago',
+    ...(process.platform === 'darwin' ? macTitleBarOptions : framelessOptions),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'app-preload.js'),
       contextIsolation: true,
@@ -59,6 +70,9 @@ function createWindow() {
       sandbox: false,
     },
   });
+
+  mainWindow.on('maximize', () => mainWindow.webContents.send('window:maximize-changed', true));
+  mainWindow.on('unmaximize', () => mainWindow.webContents.send('window:maximize-changed', false));
 
   // Every <webview> the renderer creates gets our privacy patch as its
   // preload, regardless of what the renderer script asks for. This is
