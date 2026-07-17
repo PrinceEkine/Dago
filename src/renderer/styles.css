@@ -1,5 +1,7 @@
 * { box-sizing: border-box; }
 
+.hidden { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;
@@ -25,6 +27,11 @@ body {
   align-items: center;
   padding: 6px 8px 0 8px;
   gap: 4px;
+  /* Merges the OS title bar with the tab strip (frame:false on Windows/
+     Linux - see main.js). The strip itself is draggable so it still acts
+     like a normal title bar; every clickable child below opts back out
+     with -webkit-app-region: no-drag, or dragging would swallow clicks. */
+  -webkit-app-region: drag;
 }
 
 #tabs {
@@ -32,6 +39,26 @@ body {
   flex: 1;
   gap: 4px;
   overflow-x: auto;
+}
+
+#tabs .tab, #new-tab-btn, #window-controls button {
+  -webkit-app-region: no-drag;
+}
+
+#window-controls {
+  display: flex;
+  gap: 2px;
+  margin-left: 4px;
+}
+
+#window-controls .icon-btn {
+  border-radius: 4px;
+  width: 36px;
+}
+
+#win-close-btn:hover {
+  background: #db4b4b;
+  color: #ffffff;
 }
 
 .tab {
@@ -48,11 +75,54 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.tab:hover {
+  background: #292e42;
 }
 
 .tab.active {
   background: #292e42;
   color: #c0caf5;
+  box-shadow: inset 0 2px 0 #7aa2f7;
+}
+
+.tab .tab-favicon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.tab .tab-favicon-placeholder {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #414868;
+  color: #c0caf5;
+  font-size: 9px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.tab .tab-spinner {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border: 2px solid #414868;
+  border-top-color: #7aa2f7;
+  border-radius: 50%;
+  animation: dago-spin 0.7s linear infinite;
+}
+
+@keyframes dago-spin {
+  to { transform: rotate(360deg); }
 }
 
 .tab .tab-title {
@@ -62,52 +132,151 @@ body {
 }
 
 .tab .tab-close {
+  opacity: 0;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.tab:hover .tab-close, .tab.active .tab-close {
   opacity: 0.6;
-  padding: 0 2px;
 }
 
 .tab .tab-close:hover {
-  opacity: 1;
+  opacity: 1 !important;
+  background: #414868;
+}
+
+.tab .tab-close .icon {
+  width: 12px;
+  height: 12px;
 }
 
 #new-tab-btn, .icon-btn {
-  background: #292e42;
-  color: #c0caf5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #a9b1d6;
   border: none;
   border-radius: 6px;
-  padding: 6px 10px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   cursor: pointer;
-  font-size: 14px;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 #new-tab-btn:hover, .icon-btn:hover {
-  background: #3b4261;
+  background: #292e42;
+  color: #c0caf5;
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  background: transparent !important;
 }
 
 .icon-btn.active {
   color: #e0af68;
 }
 
+.icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
 #toolbar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   padding: 8px;
 }
 
-#address-bar {
+#address-bar-wrap {
+  position: relative;
   flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.icon-slot {
+  position: absolute;
+  left: 10px;
+  display: flex;
+  color: #565f89;
+  pointer-events: none;
+}
+
+.icon-slot .icon {
+  width: 14px;
+  height: 14px;
+}
+
+#address-bar {
+  width: 100%;
   background: #1f2335;
   border: 1px solid #3b4261;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 8px 12px 8px 30px;
   color: #c0caf5;
   font-size: 13px;
+  transition: border-color 0.12s ease;
 }
 
 #address-bar:focus {
   outline: none;
   border-color: #7aa2f7;
+}
+
+#address-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #1f2335;
+  border: 1px solid #3b4261;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 20;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+#address-suggestions li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #c0caf5;
+}
+
+#address-suggestions li .suggestion-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#address-suggestions li .suggestion-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #565f89;
+  font-size: 11px;
+}
+
+#address-suggestions li:hover,
+#address-suggestions li.selected {
+  background: #292e42;
 }
 
 #statusbar {

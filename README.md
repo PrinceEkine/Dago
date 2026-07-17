@@ -65,6 +65,7 @@ doesn't run on mobile:
 | Feature | Status |
 |---|---|
 | Tabbed browsing, address bar, navigation | Working |
+| Modern chrome UI (custom title bar, tab favicons, address bar suggestions from bookmarks/history) | Working - see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a verification caveat on the title bar specifically |
 | Configurable search engine | Working (DuckDuckGo, Startpage, Brave Search, or Mojeek by default; add your own https:// URL with a `%s` query placeholder in Settings) |
 | Tor routing with per-tab isolated circuits + "New Identity" | Working (needs a system Tor install *or* a detected Tor Browser install - see below) |
 | Built-in tracker/ad blocking | Working (curated domain list) |

@@ -33,6 +33,37 @@ privacy layer instead of reinventing HTML/CSS/JS rendering.
   privileged IPC (PIN verification, `desktopCapturer`) that tab content must
   never get.
 
+## Chrome UI
+
+The tab strip, address bar, and toolbar (`src/renderer/index.html`,
+`styles.css`, `renderer.js`) use a small hand-built inline-SVG icon set
+(`src/renderer/icons.js`, shared with the utility pages) instead of unicode
+glyphs, which rendered inconsistently across platforms/fonts. Tabs show a
+real favicon (fetched the privacy-preserving way described in the table
+below) with a letter-placeholder fallback and a loading spinner while the
+page is still loading. The address bar suggests matches from bookmarks and
+history as you type (arrow keys to navigate, Enter/click to go) - history
+suggestions only appear once history has been unlocked with its PIN
+elsewhere in the app during that session, consistent with history's
+existing PIN gate rather than working around it.
+
+The main window merges the OS title bar with the tab strip, the way
+Chrome/Edge do, instead of a native titlebar sitting above a separate
+custom tab row: `frame: false` on Windows/Linux with Dago's own
+minimize/maximize/close buttons (`#window-controls` in `index.html`, wired
+through `window:minimize`/`window:maximize-toggle`/`window:close` IPC
+handlers in `ipc.js`), and `titleBarStyle: 'hiddenInset'` on macOS instead,
+which keeps the native traffic-light buttons rather than replacing them -
+replacing them would be off-platform for how macOS users expect a window
+to look. **Caveat:** this dev environment can't launch a real Electron
+window on any OS (its binary host is blocked - see README), so the window
+chrome itself is verified by cross-checking the Electron API surface
+(`electron.d.ts`) and by rendering the actual HTML/CSS/JS in real Chromium
+via Playwright with a mocked `window.dago` bridge (confirms the controls
+render, wire up, and call the right bridge methods) - not by a live
+minimize/maximize/drag test on a real window in any OS. A maintainer with
+a desktop to actually run `npm start` on is the real test of this one.
+
 ## Privacy layer
 
 | Concern | Mechanism | File |
@@ -47,6 +78,7 @@ privacy layer instead of reinventing HTML/CSS/JS rendering.
 | WebRTC IP-leak protection in tabs | Tab WebRTC is restricted to proxied transports (`setWebRTCIPHandlingPolicy('disable_non_proxied_udp')`) - otherwise a page script could learn the real IP via a STUN request even while the tab's HTTP traffic rides Tor, since WebRTC UDP bypasses the SOCKS proxy. Dago's own Screenshare window is a `BrowserWindow`, not a webview, and is unaffected | `src/main/main.js` |
 | No video calls | `getUserMedia` rejects any request with a `video` constraint (both in the injected preload and as a second, main-process enforced check); `getDisplayMedia` is untouched | `src/preload/privacy-preload.js`, `src/main/main.js` |
 | PIN-gated history | History is always encrypted at rest via Electron's OS-keychain-backed `safeStorage`; viewing it in the UI additionally requires a PIN (scrypt-verified, never stored in plaintext) | `src/main/history-store.js`, `src/main/pin-store.js` |
+| Session-scoped favicon fetching | A tab's favicon is fetched through that *same tab's* session (`session.fromPartition(partition).fetch(url)`), not the chrome window's own default session, then returned to the renderer as a `data:` URL - so showing a tab icon doesn't silently make an unrouted, cookie-unisolated request outside whatever Tor/isolation guarantees that tab's traffic otherwise has | `src/main/ipc.js` (`favicon:fetch`), `src/renderer/renderer.js` |
 | Screensharing without calls | `desktopCapturer` + a user-driven source picker + `setDisplayMediaRequestHandler`, wired only into Dago's own Screenshare window, never into tab sessions | `src/main/main.js`, `src/renderer/pages/screenshare.js` |
 | Screenshare TURN relay | Optional, user-configured TURN server (encrypted at rest like history) added to the WebRTC `iceServers` list; "force relay" sets `iceTransportPolicy: 'relay'` so no direct/public-IP-revealing candidate is ever negotiated | `src/main/webrtc-relay-store.js`, `src/renderer/pages/screenshare.js` |
 | Cosmetic (element-hiding) blocking | `##selector`/`domain##selector` rules from enabled subscriptions are turned into a `<style>` tag injected into each tab's page, scoped to that page's hostname (with `~exclusion` support), via an IPC round-trip from `privacy-preload.js` | `src/main/adblock.js`, `src/preload/privacy-preload.js` |

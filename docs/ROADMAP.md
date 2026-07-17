@@ -46,6 +46,17 @@ the README).
       for what it found (including a real, pre-merge bypass of ad/tracker
       blocking) and, importantly, why it is explicitly *not* a substitute
       for the independent audit below.
+- [x] Chrome UI overhaul: a hand-built inline-SVG icon set replacing unicode
+      glyphs (inconsistent across platforms/fonts), tab favicons (fetched
+      through that tab's own session, never the chrome's default session -
+      see `docs/ARCHITECTURE.md`) with a loading spinner and letter-fallback,
+      an address bar suggestions dropdown from bookmarks/history, and a
+      custom frameless title bar merging the OS frame with the tab strip
+      (native traffic lights kept on macOS via `titleBarStyle:
+      'hiddenInset'`, custom minimize/maximize/close on Windows/Linux).
+      Verified via Electron API cross-checks and real-Chromium
+      Playwright rendering with a mocked bridge, not a live window on a
+      real OS - this dev environment can't launch Electron itself
 - [x] `$third-party` filter-option support: enabling a full EasyList/
       EasyPrivacy subscription was blocking normal site loading, not just
       ads, because every other filter option was already (and still is)
@@ -89,6 +100,10 @@ the README).
 
 ## Next
 
+- [ ] Extend the custom title bar/icon set to the utility windows (History/
+      Settings/Screenshare/Bookmarks/Downloads) - they still use the default
+      OS window frame, a deliberate scope cut for the initial chrome
+      overhaul rather than an oversight
 - [ ] Actually bundle verified Tor binaries for desktop (the groundwork
       above exists; someone with network access + a PGP verification step
       needs to run it) - Android already gets this for free via tor-android
