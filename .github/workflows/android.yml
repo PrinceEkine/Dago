@@ -1,0 +1,66 @@
+name: Android
+
+# Builds the Android app's :logic module tests (which run anywhere) and a
+# debug APK for :app (which needs the real Android SDK - this repo's own
+# dev sandbox can't reach dl.google.com/maven.google.com to fetch it, so
+# :app has never been built there; see android/README.md). GitHub-hosted
+# runners have normal internet access, so this is the actual first real
+# build-verification of :app, not just a code-review exercise.
+#
+# The resulting APK is unsigned and debug-only - meant for sideloading onto
+# your own device to try Dago on Android, not a Play Store release. Enable
+# "install from unknown sources" on your phone, download the artifact below,
+# and install it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # Satisfies both :logic's jvmToolchain(21) and :app's AGP 8.5
+          # (which requires JDK 17+ to run) in one JDK - AGP compiles :app
+          # down to its own Java 17 target regardless of the JDK running
+          # Gradle itself.
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Pre-install the compileSdk platform (best effort - AGP fetches anything else it needs)
+        run: yes | sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test :logic (runs the same way this project's own sandbox already verifies it)
+        run: ./gradlew :logic:test
+
+      - name: Build :app debug APK
+        run: ./gradlew :app:assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dago-android-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

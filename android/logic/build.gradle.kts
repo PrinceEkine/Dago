@@ -10,7 +10,14 @@
 // environment with plain internet access - `gradle :logic:test` actually
 // runs here.
 plugins {
-    kotlin("jvm") version "2.0.0"
+    // Bumped from 2.0.0 - tor-android (see app/build.gradle.kts) declares
+    // a kotlin-stdlib 2.3.0 dependency, and Gradle's version resolution
+    // picks that over an older stdlib requested elsewhere. Leaving this
+    // plugin below the resolved stdlib version causes a real "class was
+    // compiled with an incompatible version of Kotlin" compile failure -
+    // caught by this project's first real CI build (.github/workflows/
+    // android.yml), not something visible from :logic alone in isolation.
+    kotlin("jvm") version "2.3.0"
 }
 
 // Repositories are centrally declared in settings.gradle.kts
