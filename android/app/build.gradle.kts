@@ -6,6 +6,8 @@
 // be correct, including dependency coordinates verified against real Maven
 // Central metadata (see that file's history for how), but the module
 // itself has not been built in this repository.
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application") version "8.5.0"
     // Bumped from 2.0.0 to match tor-android's transitive kotlin-stdlib
@@ -39,12 +41,21 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         viewBinding = true
+    }
+}
+
+// The old `android { kotlinOptions { jvmTarget = "17" } }` shorthand became a
+// hard compile error in the Kotlin Gradle Plugin bundled with this project's
+// bumped 2.3.0 version (see the plugin version comment above) - it's not
+// just deprecated, the DSL was removed. Confirmed the replacement API for
+// real by downloading and inspecting the actual kotlin-gradle-plugin-api
+// 2.3.0 JAR from Maven Central via javap, rather than guessing at
+// post-cutoff Kotlin API changes from memory.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
