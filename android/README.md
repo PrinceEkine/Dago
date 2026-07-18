@@ -49,7 +49,17 @@ If you have normal internet access (i.e., you are not this specific
 sandboxed dev environment), `:app` should build normally in Android Studio
 or via `./gradlew :app:assembleDebug` once `local.properties` points at an
 installed SDK. Please open an issue if it doesn't - that would be a real bug
-report, since this really hasn't been build-verified.
+report, since this really hasn't been build-verified locally.
+
+**`.github/workflows/android.yml`** now builds `:app` for real on every push
+to `main` that touches `android/` - GitHub's own runners have the normal
+internet access this project's dev sandbox doesn't, so that workflow is the
+actual first real build-verification of this module, not just careful code
+review. Check the Actions tab for its current status; a green run there is a
+stronger claim than anything in this file, since it's an outside process
+actually invoking `aapt2`/`d8`/the real Android Gradle Plugin rather than a
+human reading the source. It uploads a debug APK as a downloadable artifact
+too - see "Installing on a phone" below.
 
 ## How this differs from the desktop app (architecture, not bugs)
 
@@ -93,6 +103,26 @@ cd android
 
 (This repo's own dev sandbox can't run that last command - see above - but
 `./gradlew :logic:test` works anywhere, including here.)
+
+## Installing on a phone
+
+Two options, depending on whether you want to build it yourself:
+
+1. **Download the CI-built APK (easiest).** Go to the repo's Actions tab -\>
+   `Android` workflow -\> the most recent successful run -\> download the
+   `dago-android-debug` artifact, which contains an unsigned debug APK. On
+   your phone, enable "install from unknown sources" (or "install unknown
+   apps" for the app you use to open it, e.g. your file manager or browser),
+   transfer the APK over, and tap it to install. This is a debug build, not
+   a signed release - expect Android to warn you about that, and treat it
+   as alpha-quality since it hasn't had a real device smoke test yet either.
+2. **Build it yourself** with Android Studio (open the `android/` folder,
+   let it sync, then Run with your phone connected over USB with developer
+   mode/USB debugging enabled), or via the command line as described above
+   and then `adb install app/build/outputs/apk/debug/app-debug.apk`.
+
+Either way, please open an issue with what you find - this really is the
+first time this app has been installed on real hardware.
 
 ## Known gaps versus the desktop app
 

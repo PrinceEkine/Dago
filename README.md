@@ -56,10 +56,13 @@ doesn't run on mobile:
   and filter-list-parsing algorithms, via a genuinely tested plain-Kotlin
   module), what's architecturally different (one shared Tor circuit instead
   of per-tab isolation, shared cookie storage across tabs, no screensharing
-  yet), and what's verified versus not (the shared logic module has real
-  passing tests; the Android UI/Tor-service layer is unbuilt in this
-  project's own dev environment for the same network-access reasons as the
-  Tor-binary and CI notes below).
+  yet), and what's verified versus not. This project's own dev sandbox can't
+  build the Android UI/Tor-service module (no route to `dl.google.com` for
+  the Android SDK, same reasons as the Tor-binary/CI notes below), but
+  `.github/workflows/android.yml` now builds it for real on GitHub's own
+  infrastructure and publishes a debug APK you can sideload - see
+  `android/README.md`'s "Installing on a phone" section. Treat it as
+  alpha-quality; it hasn't had a real device smoke test yet.
 - **iOS** - not started; see `docs/ROADMAP.md` for why it's a bigger lift
   than Android (Apple requires all iOS browsers to use WebKit specifically,
   and restricts background processes in ways that rule out bundling Tor the
