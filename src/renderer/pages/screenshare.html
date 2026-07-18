@@ -8,23 +8,36 @@
 </head>
 <body>
   <div class="panel">
-    <h1>Screenshare</h1>
+    <h1><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Screenshare</h1>
     <p>Screen-only sharing between two Dago windows. Camera and microphone are never used here - there is no video/voice call mode.</p>
 
-    <label style="font-size:12px;color:#9aa5ce">Signaling server</label>
+    <label class="field-label">Signaling server</label>
     <input id="server-url" type="text" value="ws://localhost:8089" />
 
-    <div class="header-row" style="margin-top:16px">
+    <div class="header-row mt-16">
       <button id="tab-share" class="primary">Share my screen</button>
       <button id="tab-watch">Watch a share</button>
     </div>
 
     <div id="share-panel">
       <div id="source-list"></div>
+
+      <label class="field-label">Quality</label>
+      <select id="quality-select">
+        <option value="auto">Auto (browser default)</option>
+        <option value="balanced">Balanced (1080p, 30fps)</option>
+        <option value="data-saver">Data saver (720p, 15fps)</option>
+      </select>
+      <p class="field-hint mt-2">These are requests to the browser, not guarantees - actual quality still depends on your connection and what the source supports.</p>
+
       <button id="start-share-btn">Start sharing</button>
       <div id="share-active" class="hidden">
-        <p>Room code (give this to the viewer):</p>
+        <div class="header-row">
+          <p>Room code (give this to viewers):</p>
+          <button id="copy-room-code-btn">Copy</button>
+        </div>
         <div class="room-code" id="room-code-display"></div>
+        <p id="viewer-count-status">No viewers yet.</p>
         <button id="stop-share-btn" class="danger">Stop sharing</button>
         <video id="local-video" autoplay muted></video>
       </div>
@@ -35,6 +48,7 @@
       <input id="room-code-input" type="text" placeholder="Enter room code" maxlength="6" />
       <button id="watch-btn">Watch</button>
       <p id="watch-status" class="error"></p>
+      <p id="watch-connection-status"></p>
       <video id="remote-video" autoplay playsinline></video>
     </div>
   </div>

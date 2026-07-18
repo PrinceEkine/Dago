@@ -73,7 +73,7 @@ doesn't run on mobile:
 | Fingerprint resistance (canvas/WebGL/timezone/UA, including Client Hints) | Working, best-effort |
 | Popup blocking (blocks `window.open()`-based popups/popunders by default) | Working - trade-off: legitimate popups like OAuth logins are blocked too, see [`docs/ROADMAP.md`](docs/ROADMAP.md) |
 | No-camera policy (video calls disabled everywhere) | Working |
-| Screensharing (screen-only, peer-to-peer, room code) | Working (needs a signaling server - one-command to self-host) |
+| Screensharing (screen-only, peer-to-peer, room code, up to 8 viewers, quality presets) | Working (needs a signaling server - one-command to self-host) |
 | Optional TURN relay for screensharing | Working (configure in Settings; "force relay" hides both peers' public IPs) |
 | PIN-gated, encrypted-at-rest history | Working |
 | Bookmarks and a download manager | Working |
