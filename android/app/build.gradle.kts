@@ -8,7 +8,10 @@
 // itself has not been built in this repository.
 plugins {
     id("com.android.application") version "8.5.0"
-    id("org.jetbrains.kotlin.android") version "2.0.0"
+    // Bumped from 2.0.0 to match tor-android's transitive kotlin-stdlib
+    // 2.3.0 dependency - see the matching comment in logic/build.gradle.kts
+    // and the tor-android version pin comment below for the full story.
+    id("org.jetbrains.kotlin.android") version "2.3.0"
 }
 
 android {
