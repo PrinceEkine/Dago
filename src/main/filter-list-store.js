@@ -103,11 +103,21 @@ function parseFilterList(text) {
   return { blocked, allowed, blockedPatterns, allowedPatterns, cosmeticRules };
 }
 
+const DEFAULT_LIST_IDS = new Set(DEFAULT_LISTS.map((l) => l.id));
+const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
- * Manages user-controlled filter list subscriptions. Nothing is fetched
- * automatically on startup or on a timer - lists are only ever fetched when
- * the user explicitly adds one or clicks "Update" in Settings, per
- * docs/ROADMAP.md's "not a silent background fetch" requirement.
+ * Manages filter list subscriptions. A list the user adds themselves is
+ * still never fetched until they explicitly enable it and press "Update" -
+ * a URL a user pastes in could be anyone's infrastructure, and auto-fetching
+ * it without asking would mean silently trusting whatever that host serves.
+ * EasyList/EasyPrivacy are different: they're Dago's own hardcoded,
+ * well-known defaults (the same URLs the project has always pointed at),
+ * not user-supplied - so those two specifically are enabled out of the box
+ * and kept fresh automatically (see autoUpdateDefaults()), because requiring
+ * a trip to Settings just to get real ad/tracker blocking working defeats
+ * the point of shipping a curated default at all. This is a real trust
+ * trade-off, not a free improvement - see docs/THREAT_MODEL.md.
  */
 class FilterListStore {
   constructor(userDataDir) {
@@ -125,7 +135,31 @@ class FilterListStore {
         // fall through to defaults below
       }
     }
-    return DEFAULT_LISTS.map((l) => ({ ...l, enabled: false, lastUpdated: null, ruleCount: 0 }));
+    return DEFAULT_LISTS.map((l) => ({ ...l, enabled: true, lastUpdated: null, ruleCount: 0 }));
+  }
+
+  /**
+   * Fetches EasyList/EasyPrivacy on first run and re-fetches them once
+   * they're more than a week old - never anything the user added
+   * themselves, matching the trust boundary described above. Safe to call
+   * on every startup: it's a no-op unless a default list is both enabled
+   * and actually stale. Failures (e.g. no network yet at first launch) are
+   * swallowed - there's nothing useful to surface to the user for a
+   * background refresh, and it'll simply retry next startup since
+   * lastUpdated stays unset.
+   */
+  async autoUpdateDefaults() {
+    const staleDefaults = this.lists.filter(
+      (entry) => DEFAULT_LIST_IDS.has(entry.id) && entry.enabled &&
+        (!entry.lastUpdated || Date.now() - entry.lastUpdated > STALE_AFTER_MS)
+    );
+    for (const entry of staleDefaults) {
+      try {
+        await this.update(entry.id);
+      } catch (err) {
+        // best-effort - see doc comment above
+      }
+    }
   }
 
   _saveConfig() {

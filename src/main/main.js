@@ -7,6 +7,7 @@ const { TorManager } = require('./tor-manager');
 const { PinStore } = require('./pin-store');
 const { HistoryStore } = require('./history-store');
 const { FilterListStore } = require('./filter-list-store');
+const { getBlocklistStats } = require('./adblock');
 const { WebrtcRelayStore } = require('./webrtc-relay-store');
 const { BookmarkStore } = require('./bookmark-store');
 const { DownloadManager } = require('./download-manager');
@@ -133,6 +134,18 @@ app.whenReady().then(async () => {
   });
 
   createWindow();
+
+  // Fetches Dago's own hardcoded default lists (EasyList/EasyPrivacy) if
+  // they've never been fetched or have gone stale - never anything the user
+  // added themselves. Deliberately not awaited: this shouldn't delay the
+  // window appearing, and a background refresh has nothing useful to block
+  // on anyway (see filter-list-store.js's doc comment for the trust
+  // reasoning behind auto-fetching these two specifically).
+  filterListStore.autoUpdateDefaults().catch(() => {}).finally(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('adblock:stats-changed', getBlocklistStats());
+    }
+  });
 
   registerIpc({
     mainWindow,

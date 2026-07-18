@@ -46,6 +46,19 @@ the README).
       for what it found (including a real, pre-merge bypass of ad/tracker
       blocking) and, importantly, why it is explicitly *not* a substitute
       for the independent audit below.
+- [x] EasyList/EasyPrivacy on by default: previously a user had to visit
+      Settings, add the list, enable it, and press Update before getting
+      real ad/tracker blocking beyond the small built-in domain list - full
+      protection now works out of the box. Dago's own two hardcoded default
+      lists are enabled from a fresh install and auto-fetched on startup
+      (once, then re-fetched if more than a week stale via
+      `FilterListStore.autoUpdateDefaults()`); any *other* list a user adds
+      themselves is unaffected and still requires an explicit enable +
+      Update, since that's a URL supplying arbitrary third-party
+      infrastructure rather than a project-vetted default - see
+      `docs/THREAT_MODEL.md` for the trust reasoning. The status pill now
+      also reports the real active rule count instead of always showing the
+      34-domain built-in figure regardless of what's actually loaded
 - [x] Screensharing improvements: multiple viewers per room (one
       `RTCPeerConnection` per viewer, capped at 8 to protect the host's
       upload bandwidth), visible connection status with a best-effort

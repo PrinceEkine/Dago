@@ -21,9 +21,14 @@ doesn't make you choose:
   in default Tor Browser. See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
   for exactly what "more private than Tor" does and doesn't mean here.
 - **Built-in tracker & ad blocking**, which vanilla Tor deliberately doesn't
-  ship (it prioritizes uniform fingerprints over blocking) - plus optional
-  EasyList/EasyPrivacy-style subscriptions you control (nothing is fetched
-  until you ask for it).
+  ship (it prioritizes uniform fingerprints over blocking). Real EasyList/
+  EasyPrivacy protection is on out of the box - Dago fetches its own two
+  hardcoded default lists automatically on first run and keeps them fresh,
+  so you get full-strength blocking without a trip to Settings. Anything
+  *you* add yourself is different: a custom filter list URL is only ever
+  fetched after you explicitly enable it and press Update - see
+  [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for why that distinction
+  matters.
 - **Fingerprint resistance** - canvas noise, normalized hardware/timezone
   signals, spoofed WebGL vendor strings.
 - **No video calls, ever.** Camera access is disabled browser-wide - there is
@@ -69,7 +74,7 @@ doesn't run on mobile:
 | Configurable search engine | Working (DuckDuckGo, Startpage, Brave Search, or Mojeek by default; add your own https:// URL with a `%s` query placeholder in Settings) |
 | Tor routing with per-tab isolated circuits + "New Identity" | Working (needs a system Tor install *or* a detected Tor Browser install - see below) |
 | Built-in tracker/ad blocking | Working (curated domain list) |
-| EasyList/EasyPrivacy subscriptions | Working (add any https:// filter list URL in Settings - domain, path/wildcard, and cosmetic/element-hiding rules; see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's still not implemented) |
+| EasyList/EasyPrivacy subscriptions | Working, on by default (auto-fetched on first run and kept fresh - disable in Settings if you don't want it). Add any other https:// filter list URL too - domain, path/wildcard, and cosmetic/element-hiding rules; those still require enabling + pressing Update, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's still not implemented |
 | Fingerprint resistance (canvas/WebGL/timezone/UA, including Client Hints) | Working, best-effort |
 | Popup blocking (blocks `window.open()`-based popups/popunders by default) | Working - trade-off: legitimate popups like OAuth logins are blocked too, see [`docs/ROADMAP.md`](docs/ROADMAP.md) |
 | No-camera policy (video calls disabled everywhere) | Working |

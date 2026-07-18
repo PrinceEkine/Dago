@@ -338,6 +338,23 @@ function getCosmeticRulesForHost(hostname) {
   return [...selectors];
 }
 
+/**
+ * Reports how many rules are actually active right now, split into the
+ * always-on built-in list versus whatever enabled subscriptions have
+ * contributed. Once EasyList/EasyPrivacy are auto-fetched (see
+ * filter-list-store.js), subscriptionRuleCount is typically tens of
+ * thousands - the status pill showing only the 34-domain built-in count
+ * regardless of that would be actively misleading about what's protecting
+ * the user.
+ */
+function getBlocklistStats() {
+  return {
+    builtinDomainCount: BLOCKED_DOMAINS.length,
+    subscriptionRuleCount:
+      dynamicBlocklist.domains.length + dynamicBlocklist.blockedPatterns.length + dynamicBlocklist.cosmeticRules.length,
+  };
+}
+
 /** Wires up request blocking on a given Electron session. Idempotent per-session. */
 function attachAdblock(session, { enabled = true } = {}) {
   const state = { enabled };
@@ -366,6 +383,7 @@ module.exports = {
   isBlocked,
   setDynamicBlocklist,
   getCosmeticRulesForHost,
+  getBlocklistStats,
   compileGlobPattern,
   BLOCKED_DOMAINS,
 };

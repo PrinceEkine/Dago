@@ -2,7 +2,7 @@
 
 const { ipcMain, session, app } = require('electron');
 const crypto = require('crypto');
-const { attachAdblock, getCosmeticRulesForHost, BLOCKED_DOMAINS } = require('./adblock');
+const { attachAdblock, getCosmeticRulesForHost, getBlocklistStats, BLOCKED_DOMAINS } = require('./adblock');
 
 const NORMALIZED_CHROME_VERSION = '124';
 const NORMALIZED_USER_AGENT =
@@ -67,7 +67,7 @@ function registerIpc({
 
   ipcMain.handle('tor:new-identity', async () => torManager.newIdentity());
 
-  ipcMain.handle('adblock:stats', () => ({ domainCount: BLOCKED_DOMAINS.length }));
+  ipcMain.handle('adblock:stats', () => ({ domainCount: BLOCKED_DOMAINS.length, ...getBlocklistStats() }));
 
   const MAX_FAVICON_BYTES = 200 * 1024;
   // Fetches a tab's favicon through that SAME tab's session - not the
