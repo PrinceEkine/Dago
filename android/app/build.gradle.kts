@@ -66,5 +66,22 @@ dependencies {
     // net.freehaven.tor.control.TorControlConnection) were verified against
     // the actual published AAR/JAR from Maven Central before writing
     // DagoTorController.kt - see that file's doc comment.
-    implementation("info.guardianproject:tor-android:0.4.9.11")
+    //
+    // Pinned to 0.4.9.5, not the newest release (0.4.9.11 at the time of
+    // writing): this project's first real CI build (.github/workflows/
+    // android.yml, which has actual internet access this repo's own dev
+    // sandbox doesn't) failed on `:app:checkDebugAarMetadata` because every
+    // tor-android release from 0.4.9.6 onward declares `minCompileSdk=36`
+    // or `37` in its AAR metadata, while this project's AGP 8.5.0 only
+    // supports compileSdk up to 34. Confirmed directly by downloading and
+    // inspecting META-INF/com/android/build/gradle/aar-metadata.properties
+    // from several real published versions on Maven Central - 0.4.9.5 is
+    // the newest one with no such constraint (minCompileSdk=1). Re-verified
+    // via javap that its TorService/LocalBinder/TorControlConnection API
+    // surface is unchanged from what DagoTorController.kt was written
+    // against (jtorctl stays at 0.4.5.7 as a transitive dependency either
+    // way). Upgrading past this needs bumping AGP/compileSdk together,
+    // which needs real access to Google's Maven to verify version
+    // compatibility - tracked in docs/ROADMAP.md.
+    implementation("info.guardianproject:tor-android:0.4.9.5")
 }

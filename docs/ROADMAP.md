@@ -154,6 +154,14 @@ the README).
       sideloadable debug APK - but a build succeeding doesn't mean the app
       actually behaves correctly on a real device, and nobody has installed
       it on one yet
+- [ ] Upgrade `tor-android` past 0.4.9.5 (pinned there deliberately - see
+      `app/build.gradle.kts`'s comment): every release from 0.4.9.6 onward
+      requires `compileSdk` 36 or 37, which needs an AGP version newer than
+      this project's current 8.5.0 (max recommended compileSdk 34). Bumping
+      AGP/compileSdk together needs real access to Google's Maven to verify
+      version compatibility first - this project's dev sandbox can't reach
+      it, and guessing at version numbers here risks another broken CI run
+      instead of a working one
 - [ ] Android screensharing (needs `MediaProjection` + its own foreground
       service - a distinct undertaking from the WebRTC approach on desktop)
 

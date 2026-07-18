@@ -22,9 +22,10 @@ import org.torproject.jni.TorService
  * public API used here (`TorService`, its `LocalBinder`, `ACTION_START`,
  * `ACTION_STATUS`/`EXTRA_STATUS`, `getSocksPort()`,
  * `getTorControlConnection()`, and `TorControlConnection.signal()`) was
- * verified against the actual published tor-android 0.4.9.11 AAR and
- * jtorctl 0.4.5.7 JAR from Maven Central (via `javap`) before writing this
- * class, not written from memory alone.
+ * verified against the actual published tor-android AAR and jtorctl 0.4.5.7
+ * JAR from Maven Central (via `javap`) before writing this class, not
+ * written from memory alone - see app/build.gradle.kts for why the
+ * dependency is pinned to 0.4.9.5 rather than the newest release.
  *
  * A real architectural difference from desktop: Electron gives each tab its
  * own session with its own SocksPort, so tabs never share a circuit.
