@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('dago', {
 
   adblock: {
     stats: () => ipcRenderer.invoke('adblock:stats'),
+    onStatsChanged: (callback) => {
+      ipcRenderer.on('adblock:stats-changed', (event, stats) => callback(stats));
+    },
   },
 
   favicon: {

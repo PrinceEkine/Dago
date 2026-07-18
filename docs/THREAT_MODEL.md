@@ -82,13 +82,19 @@ protect you identically.
 - **Supply-chain trust** - Dago is unaudited alpha software. Review the
   source yourself before relying on it, especially the privacy-preload and
   Tor integration code.
-- **Trust in your filter-list subscriptions** - a filter list is fetched
-  from a URL you supply, and its content directly controls what gets
-  blocked or *allowed*. A compromised or malicious list host can weaken your
-  protection (a real, concrete version of this was found and fixed before
-  ever shipping - see [`SECURITY.md`](../SECURITY.md)). Only subscribe to
-  lists from sources you trust the same way you'd trust any other
-  third-party code running with some authority over your browsing.
+- **Trust in your filter-list subscriptions** - a filter list's content
+  directly controls what gets blocked or *allowed*. A compromised or
+  malicious list host can weaken your protection (a real, concrete version
+  of this was found and fixed before ever shipping - see
+  [`SECURITY.md`](../SECURITY.md)). This applies differently depending on
+  where the list comes from: EasyList/EasyPrivacy are Dago's own hardcoded
+  defaults, fetched automatically because the project itself is vouching
+  for that specific, well-known URL - the same trust decision you're
+  already making by using Dago at all, not a new one. Any *other* list you
+  add yourself is a URL you supply, fetched only after you explicitly
+  enable it and press Update, and you should only do that for sources you'd
+  trust the same way you'd trust any other third-party code running with
+  some authority over your browsing.
 
 If your safety depends on strong anonymity (e.g. journalism, activism under
 surveillance), use the mature, audited **Tor Browser** today. Dago's goal is

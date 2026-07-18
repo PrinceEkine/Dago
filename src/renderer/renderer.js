@@ -379,9 +379,15 @@ function renderTorStatus(status) {
 window.dago.tor.getStatus().then(renderTorStatus);
 window.dago.tor.onStatusChanged(renderTorStatus);
 
-window.dago.adblock.stats().then(({ domainCount }) => {
-  adblockStatusEl.textContent = `Tracker blocking: on (${domainCount} domains)`;
-});
+function renderAdblockStats({ builtinDomainCount, subscriptionRuleCount }) {
+  const total = builtinDomainCount + subscriptionRuleCount;
+  adblockStatusEl.textContent = subscriptionRuleCount > 0
+    ? `Tracker blocking: on (${total.toLocaleString()} rules, incl. EasyList/EasyPrivacy)`
+    : `Tracker blocking: on (${builtinDomainCount} built-in domains)`;
+}
+
+window.dago.adblock.stats().then(renderAdblockStats);
+window.dago.adblock.onStatsChanged(renderAdblockStats);
 
 // --- Custom window controls (Windows/Linux only - macOS keeps its native
 // traffic-light buttons via titleBarStyle: 'hiddenInset', see main.js) ---
