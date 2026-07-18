@@ -46,6 +46,18 @@ the README).
       for what it found (including a real, pre-merge bypass of ad/tracker
       blocking) and, importantly, why it is explicitly *not* a substitute
       for the independent audit below.
+- [x] Screensharing improvements: multiple viewers per room (one
+      `RTCPeerConnection` per viewer, capped at 8 to protect the host's
+      upload bandwidth), visible connection status with a best-effort
+      auto-recovery attempt on ICE failure, quality presets, and a room-code
+      copy button. Camera/microphone are still never used anywhere in this
+      feature - see the README's no-video-call policy. Found and fixed
+      along the way: every inline `style="..."` attribute across the
+      utility pages (Settings, Screenshare) had been silently no-op'd since
+      each page's own CSP (`style-src 'self'`) blocks inline styles outright
+      - Chromium drops them with no visible error, so this had been quietly
+      broken since those pages were first built. Replaced with real CSS
+      classes in `pages.css`
 - [x] Chrome UI overhaul: a hand-built inline-SVG icon set replacing unicode
       glyphs (inconsistent across platforms/fonts), tab favicons (fetched
       through that tab's own session, never the chrome's default session -

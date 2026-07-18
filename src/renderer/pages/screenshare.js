@@ -2,6 +2,15 @@
 
 const STUN_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
 
+// "ideal" hints passed to getDisplayMedia - the browser/OS capture pipeline
+// may not honor them exactly (e.g. a 720p source can't be upscaled to
+// 1080p), which is why the UI describes these as requests, not guarantees.
+const QUALITY_PRESETS = {
+  auto: true,
+  balanced: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+  'data-saver': { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 15 } },
+};
+
 const serverUrlInput = document.getElementById('server-url');
 const tabShareBtn = document.getElementById('tab-share');
 const tabWatchBtn = document.getElementById('tab-watch');
@@ -9,9 +18,12 @@ const sharePanel = document.getElementById('share-panel');
 const watchPanel = document.getElementById('watch-panel');
 
 const sourceListEl = document.getElementById('source-list');
+const qualitySelect = document.getElementById('quality-select');
 const startShareBtn = document.getElementById('start-share-btn');
 const shareActiveEl = document.getElementById('share-active');
 const roomCodeDisplay = document.getElementById('room-code-display');
+const copyRoomCodeBtn = document.getElementById('copy-room-code-btn');
+const viewerCountStatus = document.getElementById('viewer-count-status');
 const stopShareBtn = document.getElementById('stop-share-btn');
 const localVideo = document.getElementById('local-video');
 const shareStatus = document.getElementById('share-status');
@@ -19,12 +31,18 @@ const shareStatus = document.getElementById('share-status');
 const roomCodeInput = document.getElementById('room-code-input');
 const watchBtn = document.getElementById('watch-btn');
 const watchStatus = document.getElementById('watch-status');
+const watchConnectionStatus = document.getElementById('watch-connection-status');
 const remoteVideo = document.getElementById('remote-video');
 
 let selectedSourceId = null;
 let ws = null;
-let pc = null;
 let localStream = null;
+// Host side: one RTCPeerConnection per connected viewer, since a single
+// screen is fanned out P2P to each viewer separately - there is no server-
+// side media relay/transcoding here, only signaling.
+const viewerConnections = new Map(); // viewerId -> RTCPeerConnection
+// Viewer side: a single connection to the one host.
+let viewerPc = null;
 
 function switchTab(mode) {
   sharePanel.classList.toggle('hidden', mode !== 'share');
@@ -71,6 +89,23 @@ async function buildRtcConfig() {
   return { iceServers, iceTransportPolicy };
 }
 
+/**
+ * Wires up ICE connection state tracking on a peer connection, including a
+ * best-effort auto-recovery attempt on 'failed'. restartIce() only actually
+ * triggers new ICE negotiation on the side that creates offers - on this
+ * feature that's always the host, so a viewer's connection recovering after
+ * a network blip depends on the HOST's restartIce() producing a fresh offer,
+ * not anything the viewer side can trigger itself.
+ */
+function watchConnectionState(pc, onChange) {
+  pc.addEventListener('iceconnectionstatechange', () => {
+    onChange(pc.iceConnectionState);
+    if (pc.iceConnectionState === 'failed' && typeof pc.restartIce === 'function') {
+      pc.restartIce();
+    }
+  });
+}
+
 // --- Host / share flow ---
 
 async function loadSources() {
@@ -95,6 +130,33 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function updateViewerCountStatus() {
+  const n = viewerConnections.size;
+  viewerCountStatus.textContent = n === 0 ? 'No viewers yet.' : `${n} viewer${n === 1 ? '' : 's'} connected.`;
+}
+
+/** Creates a fresh offer for one viewer and sends it, tagged with that viewer's id. */
+async function createViewerConnection(viewerId) {
+  const pc = new RTCPeerConnection(await buildRtcConfig());
+  viewerConnections.set(viewerId, pc);
+  localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+  pc.onicecandidate = (e) => {
+    if (e.candidate) ws.send(JSON.stringify({ type: 'ice-candidate', candidate: e.candidate, targetViewerId: viewerId }));
+  };
+  watchConnectionState(pc, () => updateViewerCountStatus());
+  pc.addEventListener('connectionstatechange', () => {
+    if (['closed', 'failed'].includes(pc.connectionState)) {
+      viewerConnections.delete(viewerId);
+      updateViewerCountStatus();
+    }
+  });
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  ws.send(JSON.stringify({ type: 'offer', sdp: offer, targetViewerId: viewerId }));
+  updateViewerCountStatus();
+}
+
 startShareBtn.addEventListener('click', async () => {
   shareStatus.textContent = '';
   if (!selectedSourceId) {
@@ -106,7 +168,8 @@ startShareBtn.addEventListener('click', async () => {
     await window.dago.screenshare.selectSource(selectedSourceId);
     // Screen/window capture only - getUserMedia (camera/mic) is never called
     // anywhere in this flow, which is what keeps this feature call-free.
-    localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    const videoConstraint = QUALITY_PRESETS[qualitySelect.value] ?? true;
+    localStream = await navigator.mediaDevices.getDisplayMedia({ video: videoConstraint, audio: false });
   } catch (err) {
     shareStatus.textContent = `Could not capture screen: ${err.message}`;
     return;
@@ -122,24 +185,21 @@ startShareBtn.addEventListener('click', async () => {
     return;
   }
 
-  pc = new RTCPeerConnection(await buildRtcConfig());
-  localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
-  pc.onicecandidate = (e) => {
-    if (e.candidate) ws.send(JSON.stringify({ type: 'ice-candidate', candidate: e.candidate }));
-  };
-
   ws.addEventListener('message', async (event) => {
     const msg = JSON.parse(event.data);
     if (msg.type === 'viewer-joined') {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      ws.send(JSON.stringify({ type: 'offer', sdp: offer }));
-    } else if (msg.type === 'answer') {
-      await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-    } else if (msg.type === 'ice-candidate' && msg.candidate) {
-      await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
-    } else if (msg.type === 'peer-left') {
-      shareStatus.textContent = 'Viewer disconnected.';
+      await createViewerConnection(msg.viewerId);
+    } else if (msg.type === 'answer' && msg.fromViewerId) {
+      const pc = viewerConnections.get(msg.fromViewerId);
+      if (pc) await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+    } else if (msg.type === 'ice-candidate' && msg.candidate && msg.fromViewerId) {
+      const pc = viewerConnections.get(msg.fromViewerId);
+      if (pc) await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+    } else if (msg.type === 'viewer-left') {
+      const pc = viewerConnections.get(msg.viewerId);
+      if (pc) pc.close();
+      viewerConnections.delete(msg.viewerId);
+      updateViewerCountStatus();
     }
   });
 
@@ -147,16 +207,29 @@ startShareBtn.addEventListener('click', async () => {
   roomCodeDisplay.textContent = room;
   shareActiveEl.classList.remove('hidden');
   startShareBtn.disabled = true;
+  updateViewerCountStatus();
 
   localStream.getVideoTracks()[0].addEventListener('ended', stopSharing);
 });
 
+copyRoomCodeBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(roomCodeDisplay.textContent);
+    const original = copyRoomCodeBtn.textContent;
+    copyRoomCodeBtn.textContent = 'Copied!';
+    setTimeout(() => { copyRoomCodeBtn.textContent = original; }, 1500);
+  } catch (err) {
+    // Clipboard access can fail if the window lost focus - not worth
+    // surfacing as an error, the room code is right there to copy by hand.
+  }
+});
+
 function stopSharing() {
   if (localStream) localStream.getTracks().forEach((t) => t.stop());
-  if (pc) pc.close();
+  for (const pc of viewerConnections.values()) pc.close();
+  viewerConnections.clear();
   if (ws) ws.close();
   localStream = null;
-  pc = null;
   ws = null;
   shareActiveEl.classList.add('hidden');
   startShareBtn.disabled = false;
@@ -169,6 +242,7 @@ stopShareBtn.addEventListener('click', stopSharing);
 
 watchBtn.addEventListener('click', async () => {
   watchStatus.textContent = '';
+  watchConnectionStatus.textContent = '';
   const room = roomCodeInput.value.trim().toUpperCase();
   if (!room) {
     watchStatus.textContent = 'Enter a room code.';
@@ -182,27 +256,39 @@ watchBtn.addEventListener('click', async () => {
     return;
   }
 
-  pc = new RTCPeerConnection(await buildRtcConfig());
-  pc.ontrack = (e) => {
+  viewerPc = new RTCPeerConnection(await buildRtcConfig());
+  viewerPc.ontrack = (e) => {
     remoteVideo.srcObject = e.streams[0];
   };
-  pc.onicecandidate = (e) => {
+  viewerPc.onicecandidate = (e) => {
     if (e.candidate) ws.send(JSON.stringify({ type: 'ice-candidate', candidate: e.candidate }));
   };
+  watchConnectionState(viewerPc, (state) => {
+    const labels = {
+      checking: 'Connecting…',
+      connected: 'Connected.',
+      completed: 'Connected.',
+      disconnected: 'Connection lost, trying to recover…',
+      failed: 'Connection failed. Ask the host to check their network, or Watch again.',
+      closed: '',
+    };
+    watchConnectionStatus.textContent = labels[state] ?? '';
+  });
 
   ws.addEventListener('message', async (event) => {
     const msg = JSON.parse(event.data);
     if (msg.type === 'error') {
       watchStatus.textContent = msg.message;
     } else if (msg.type === 'offer') {
-      await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
+      await viewerPc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+      const answer = await viewerPc.createAnswer();
+      await viewerPc.setLocalDescription(answer);
       ws.send(JSON.stringify({ type: 'answer', sdp: answer }));
     } else if (msg.type === 'ice-candidate' && msg.candidate) {
-      await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
-    } else if (msg.type === 'peer-left') {
+      await viewerPc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+    } else if (msg.type === 'host-left') {
       watchStatus.textContent = 'Host stopped sharing.';
+      watchConnectionStatus.textContent = '';
       remoteVideo.srcObject = null;
     }
   });

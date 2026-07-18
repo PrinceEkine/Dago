@@ -118,10 +118,34 @@ options) remains tracked in `docs/ROADMAP.md`.
 
 ## Screensharing data path
 
-Dago's screenshare feature is peer-to-peer WebRTC. The only server involved
-(`signaling-server/server.js`) relays SDP/ICE messages between exactly two
-peers by room code and never touches the actual video stream. Anyone can run
-their own signaling server; there's no dependency on a Dago-operated service.
+Dago's screenshare feature is peer-to-peer WebRTC, screen-only - camera and
+microphone are never touched anywhere in this flow, and there is no video-
+call mode (a deliberate policy, see the README). The only server involved
+(`signaling-server/server.js`) relays SDP/ICE messages by room code and
+never touches the actual video stream. Anyone can run their own signaling
+server; there's no dependency on a Dago-operated service.
+
+**Multiple viewers.** A room has one host and up to 8 viewers (a cap on the
+signaling server protecting the host's own upload bandwidth from a leaked or
+guessed room code, not a hard protocol limit). This is still P2P, not a
+media server - the host keeps one full `RTCPeerConnection` per viewer, and
+its screen is uploaded once per viewer, not once total. The signaling
+server tags every offer/ICE-candidate it relays from the host with a
+`targetViewerId` and every answer/ICE-candidate from a viewer with a
+`fromViewerId`, so the host can route each message to the right
+per-viewer connection.
+
+**Connection recovery.** Both sides watch `oniceconnectionstatechange`, and
+the host attempts `pc.restartIce()` on a `failed` state for that viewer.
+This only actually re-negotiates from the *offering* side, which on this
+feature is always the host - a viewer's dropped connection recovers if and
+when the host's side notices and restarts, not through any action available
+to the viewer itself.
+
+**Quality**: `getDisplayMedia`'s `video` constraints accept an "Auto /
+Balanced (1080p30) / Data saver (720p15)" hint from the Screenshare
+window - these are requests, not guarantees; the browser and OS capture
+pipeline can and do ignore hints a source doesn't support.
 
 By default the WebRTC connection itself is still direct P2P (via a public
 STUN server for NAT traversal), which means each peer's public IP address is
