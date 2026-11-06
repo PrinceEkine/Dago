@@ -78,11 +78,11 @@ function renderList(entries) {
     const li = document.createElement('li');
     const date = new Date(entry.timestamp).toLocaleString();
     li.innerHTML = `
-      <div style="overflow:hidden">
+      <div class="entry-main">
         <div class="entry-title">${escapeHtml(entry.title)}</div>
         <div class="entry-url">${escapeHtml(entry.url)}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="entry-side">
         <span class="entry-time">${date}</span>
         <span class="entry-remove" data-index="${displayIndex}">&times;</span>
       </div>

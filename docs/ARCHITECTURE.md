@@ -64,6 +64,27 @@ render, wire up, and call the right bridge methods) - not by a live
 minimize/maximize/drag test on a real window in any OS. A maintainer with
 a desktop to actually run `npm start` on is the real test of this one.
 
+Fullscreen is real fullscreen: F11 is caught in the main process
+(`before-input-event` on every contents, so it works with focus inside tab
+content too, where a renderer keydown handler would never fire), a video
+player's fullscreen button promotes the window to fullscreen via
+`enter-html-full-screen` (without that the video only fills the webview
+area behind the tab strip), and the renderer hides the whole chrome while
+fullscreen, with a floating exit pill as the mouse-friendly way out. Leaving
+video fullscreen only exits window fullscreen if the video owned it - an
+F11 fullscreen survives underneath, matching Chrome.
+
+The UI is themeable (light/dark/system, Settings → Appearance,
+`src/main/theme-store.js`): stylesheets are CSS variables with dark as the
+default and a `[data-theme="light"]` override set; the resolved theme is
+stamped into each UI page's URL at load time and applied by the
+parser-blocking `theme-init.js` before first paint (no flash, no CSP
+weakening, no synchronous IPC), with live updates over a `theme:changed`
+broadcast. The new-tab page has no preload bridge (it runs in a webview),
+so the renderer stamps its URL instead and re-stamps open ones on change.
+Web content is never themed - only Dago's own chrome, utility windows, and
+new-tab page.
+
 ## Privacy layer
 
 | Concern | Mechanism | File |
@@ -74,7 +95,7 @@ a desktop to actually run `npm start` on is the real test of this one.
 | Filter list subscriptions | EasyList/EasyPrivacy are Dago's own hardcoded defaults, enabled out of the box and auto-fetched on first run (then re-fetched if more than a week stale) via `autoUpdateDefaults()`, called once at startup. Any *other* URL the user adds is different: still only ever fetched after an explicit enable + "Update" click, never automatically - a user-supplied URL could be anyone's infrastructure, and the two defaults are the only fetch source Dago trusts on your behalf. Everything is cached to disk and merged into the shared blocklist all tab sessions read from | `src/main/filter-list-store.js` |
 | Fingerprint resistance | Best-effort JS patches: canvas noise (across `getImageData`/`toDataURL`/`toBlob`), audio-context noise (`AudioBuffer`/`AnalyserNode`), WebGL vendor spoofing, UTC timezone, normalized UA/hardware values (including `navigator.userAgentData`'s Client Hints, not just the classic `User-Agent` string), `screen`/`innerWidth`/`innerHeight` bucketing | `src/preload/privacy-preload.js` |
 | Consistent User-Agent across headers and JS | The `User-Agent` HTTP header is normalized per tab session; the `Sec-CH-UA*` Client Hints headers are normalized to match (a mismatch between the two is itself a fingerprinting/bot-detection signal - this was found by hitting a real Cloudflare challenge wall in manual testing) | `src/main/ipc.js`, `src/preload/privacy-preload.js` |
-| Popup blocking | `setWindowOpenHandler` on every webview's contents denies all `window.open()`/`target="_blank"` window creation from tab content, enforced in the main process where a page can't touch it. Two earlier renderer-side attempts were silently ineffective (`allowpopups="false"` actually *enables* popups - it's a presence-checked boolean attribute - and the webview `new-window` event no longer exists in modern Electron); see `SECURITY.md` | `src/main/main.js` |
+| Popup blocking + per-site allow-list | `setWindowOpenHandler` on every webview's contents is the sole gatekeeper: deny by default, allow only for openers on the user's allow-list (`src/main/popup-store.js`, keyed by opener hostname + subdomains) - and even then the URL opens as a normal Dago tab, never a native window (which would escape tab isolation). The webview tag must carry `allowpopups` for this handler to fire at all (without it Chromium refuses below the app); three earlier attempts were silently ineffective in sequence (see `SECURITY.md`) | `src/main/main.js`, `src/main/popup-store.js`, `src/renderer/renderer.js` |
 | WebRTC IP-leak protection in tabs | Tab WebRTC is restricted to proxied transports (`setWebRTCIPHandlingPolicy('disable_non_proxied_udp')`) - otherwise a page script could learn the real IP via a STUN request even while the tab's HTTP traffic rides Tor, since WebRTC UDP bypasses the SOCKS proxy. Dago's own Screenshare window is a `BrowserWindow`, not a webview, and is unaffected | `src/main/main.js` |
 | No video calls | `getUserMedia` rejects any request with a `video` constraint (both in the injected preload and as a second, main-process enforced check); `getDisplayMedia` is untouched | `src/preload/privacy-preload.js`, `src/main/main.js` |
 | PIN-gated history | History is always encrypted at rest via Electron's OS-keychain-backed `safeStorage`; viewing it in the UI additionally requires a PIN (scrypt-verified, never stored in plaintext) | `src/main/history-store.js`, `src/main/pin-store.js` |
@@ -101,20 +122,26 @@ rules. These are matched by `compileGlobPattern`/`globSegmentsMatch` in
 `adblock.js`, which deliberately avoid `RegExp` entirely in favor of
 sequential `String.prototype.indexOf` scanning - an earlier RegExp-based
 version turned out to have a real ReDoS vulnerability despite looking safe
-on paper (see [`SECURITY.md`](../SECURITY.md) for the full story). Raw
-`/regex/` filters from a subscription are still rejected outright rather
-than compiled, and most request-type/context options (`$script`, `$xhr`,
-`$domain=`, etc.) still aren't implemented - only address matching. The one
-option that IS implemented is `$third-party`: a rule scoped with it only
-fires when the request's registrable domain differs from the current tab's
-top-level page (via `webRequest`'s `details.frame.top.url`), the same
-convention real ad-blockers use so a subscription's ad/tracker rules don't
-also catch a site's own first-party content. This was added specifically
-because ignoring it entirely caused real, reported breakage (see
-[`SECURITY.md`](../SECURITY.md)) - most EasyList/EasyPrivacy rules use this
-option, so skipping it made a full subscription meaningfully more
-trigger-happy than intended. A full Adblock Plus rule engine (the remaining
-options) remains tracked in `docs/ROADMAP.md`.
+on paper (see [`SECURITY.md`](../SECURITY.md) for the full story). Matching
+itself is indexed (domain buckets plus an Aho-Corasick automaton over
+substring rules - also ReDoS-immune by construction, being a plain DFA)
+rather than scanned linearly, which is what keeps per-request blocking at
+~0.02ms with a full subscription loaded. Raw `/regex/` filters from a
+subscription are still rejected outright rather than compiled. Request
+scoping options ARE implemented and enforced per request (`ruleApplies` in
+`adblock.js`, using `webRequest`'s `details.resourceType` and
+`details.frame.top.url`): `$third-party`/`$~third-party` (cross-site vs
+same-site only), `$domain=` (top-level page scoping with `~` exclusions),
+and resource types (`$script`, `$image`, `$stylesheet`, `$xmlhttprequest`,
+`$subdocument`, `$font`, `$media`, `$object`, `$ping`, `$websocket`,
+`$document`, `$other`, `$all`, each negatable as `$~script` etc.).
+`$third-party` was implemented first specifically because ignoring it
+entirely caused real, reported breakage (see
+[`SECURITY.md`](../SECURITY.md)) - most EasyList/EasyPrivacy rules use
+scoping options, so skipping them makes a full subscription meaningfully
+more trigger-happy than intended. Cosmetic-behavior options (`$elemhide`),
+response-modifying options (`$csp=`, `$redirect=`), and `$match-case` remain
+unimplemented - see `filter-list-store.js`'s doc comment for the full list.
 
 ## Screensharing data path
 

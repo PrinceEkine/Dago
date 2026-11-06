@@ -1,10 +1,56 @@
 * { box-sizing: border-box; }
 
+/* Theme variables: :root is the dark theme (the app's original look - also
+   what renders before theme-init.js runs, so dark users never flash), and
+   [data-theme="light"] overrides it. Set by theme-init.js from the
+   ?dago-theme= URL stamp (see src/main/theme-store.js). */
+:root {
+  --bg: #1a1b26;
+  --text: #c0caf5;
+  --text-dim: #9aa5ce;
+  --muted: #565f89;
+  --accent: #7aa2f7;
+  --field-bg: #1f2335;
+  --field-border: #3b4261;
+  --btn-bg: #292e42;
+  --btn-bg-hover: #3b4261;
+  --btn-danger-bg: #3a2b2b;
+  --btn-danger-bg-hover: #4a2f2f;
+  --btn-danger-text: #f7768e;
+  --error: #f7768e;
+  --success: #9ece6a;
+  --row-border: #24283b;
+  --source-hover: #24283b;
+  --source-selected: #3b4261;
+  --video-bg: #000000;
+}
+
+[data-theme="light"] {
+  --bg: #e6e7ed;
+  --text: #2e3350;
+  --text-dim: #5a6285;
+  --muted: #8b91ad;
+  --accent: #2f5fd0;
+  --field-bg: #f2f3f7;
+  --field-border: #b9bdd0;
+  --btn-bg: #d4d7e2;
+  --btn-bg-hover: #c2c6d5;
+  --btn-danger-bg: #f2ccd2;
+  --btn-danger-bg-hover: #e5b3bb;
+  --btn-danger-text: #b02a3c;
+  --error: #b02a3c;
+  --success: #2c7a33;
+  --row-border: #c2c5d2;
+  --source-hover: #d4d7e2;
+  --source-selected: #c2c6d5;
+  --video-bg: #000000;
+}
+
 html, body {
   margin: 0;
   min-height: 100%;
-  background: #1a1b26;
-  color: #c0caf5;
+  background: var(--bg);
+  color: var(--text);
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -18,26 +64,37 @@ html, body {
 
 h1 { font-size: 20px; font-weight: 600; margin: 0 0 8px 0; display: flex; align-items: center; gap: 10px; }
 
-h1 .icon { width: 20px; height: 20px; color: #7aa2f7; flex: 0 0 auto; }
+h1 .icon { width: 20px; height: 20px; color: var(--accent); flex: 0 0 auto; }
 
-p { color: #9aa5ce; font-size: 13px; }
+p { color: var(--text-dim); font-size: 13px; }
 
 input[type="text"], input[type="password"], input[type="number"] {
   width: 100%;
-  background: #1f2335;
-  border: 1px solid #3b4261;
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
   border-radius: 8px;
   padding: 10px 12px;
-  color: #c0caf5;
+  color: var(--text);
   font-size: 14px;
   margin: 8px 0;
 }
 
-input:focus { outline: none; border-color: #7aa2f7; }
+input:focus { outline: none; border-color: var(--accent); }
+
+select {
+  width: 100%;
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+  margin: 8px 0;
+}
 
 button {
-  background: #292e42;
-  color: #c0caf5;
+  background: var(--btn-bg);
+  color: var(--text);
   border: none;
   border-radius: 8px;
   padding: 8px 14px;
@@ -49,14 +106,15 @@ button {
 
 button:first-child { margin-left: 0; }
 
-button:hover { background: #3b4261; }
+button:hover { background: var(--btn-bg-hover); }
 
-button.danger { background: #3a2b2b; color: #f7768e; }
-button.danger:hover { background: #4a2f2f; }
+button.danger { background: var(--btn-danger-bg); color: var(--btn-danger-text); }
+button.danger:hover { background: var(--btn-danger-bg-hover); }
 
-button.primary { background: #3b4261; color: #7aa2f7; }
+button.primary { background: var(--btn-bg-hover); color: var(--accent); }
 
-.error { color: #f7768e; min-height: 16px; }
+.error { color: var(--error); min-height: 16px; }
+.success { color: var(--success); min-height: 16px; }
 
 .header-row {
   display: flex;
@@ -75,26 +133,29 @@ button.primary { background: #3b4261; color: #7aa2f7; }
   justify-content: space-between;
   gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px solid #24283b;
+  border-bottom: 1px solid var(--row-border);
   font-size: 13px;
 }
 
-#history-list .entry-title, #bookmark-list .entry-title, #download-list .entry-title { color: #c0caf5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#history-list .entry-url, #bookmark-list .entry-url, #download-list .entry-url { color: #565f89; font-size: 11px; }
-#history-list .entry-time, #bookmark-list .entry-time, #download-list .entry-time { color: #565f89; font-size: 11px; white-space: nowrap; }
-#history-list .entry-remove, #bookmark-list .entry-remove, #download-list .entry-remove { cursor: pointer; color: #565f89; }
-#history-list .entry-remove:hover, #bookmark-list .entry-remove:hover, #download-list .entry-remove:hover { color: #f7768e; }
+#history-list .entry-title, #bookmark-list .entry-title, #download-list .entry-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#history-list .entry-url, #bookmark-list .entry-url, #download-list .entry-url { color: var(--muted); font-size: 11px; }
+#history-list .entry-time, #bookmark-list .entry-time, #download-list .entry-time { color: var(--muted); font-size: 11px; white-space: nowrap; }
+#history-list .entry-remove, #bookmark-list .entry-remove, #download-list .entry-remove { cursor: pointer; color: var(--muted); }
+#history-list .entry-remove:hover, #bookmark-list .entry-remove:hover, #download-list .entry-remove:hover { color: var(--error); }
 
 .setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 14px 0;
-  border-bottom: 1px solid #24283b;
+  border-bottom: 1px solid var(--row-border);
 }
 
 .setting-row .setting-label { font-size: 14px; }
-.setting-row .setting-desc { font-size: 12px; color: #565f89; margin-top: 2px; }
+.setting-row .setting-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.theme-options { display: flex; gap: 14px; }
+.radio-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); cursor: pointer; }
 
 .source-item {
   display: flex;
@@ -105,20 +166,21 @@ button.primary { background: #3b4261; color: #7aa2f7; }
   cursor: pointer;
 }
 
-.source-item:hover { background: #24283b; }
+.source-item:hover { background: var(--source-hover); }
+.source-item.selected { background: var(--source-selected); }
 
 .source-item img {
   width: 80px;
   height: 54px;
   object-fit: cover;
   border-radius: 4px;
-  background: #000;
+  background: var(--video-bg);
 }
 
 #local-video, #remote-video {
   width: 100%;
   border-radius: 8px;
-  background: #000;
+  background: var(--video-bg);
   margin-top: 12px;
 }
 
@@ -126,7 +188,7 @@ button.primary { background: #3b4261; color: #7aa2f7; }
   font-size: 24px;
   letter-spacing: 4px;
   font-weight: 700;
-  color: #7aa2f7;
+  color: var(--accent);
   margin: 8px 0;
 }
 
@@ -135,12 +197,12 @@ button.primary { background: #3b4261; color: #7aa2f7; }
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid #24283b;
+  border-bottom: 1px solid var(--row-border);
   font-size: 13px;
 }
 
 .filter-list-item .fl-name { flex: 1; }
-.filter-list-item .fl-meta { color: #565f89; font-size: 11px; }
+.filter-list-item .fl-meta { color: var(--muted); font-size: 11px; }
 .filter-list-item button { padding: 4px 10px; font-size: 12px; }
 
 /* Small utility classes - CSP here is style-src 'self', which silently
@@ -155,8 +217,8 @@ button.primary { background: #3b4261; color: #7aa2f7; }
 .mt-24 { margin-top: 24px; }
 .mt-2 { margin-top: 2px; }
 
-.field-label { font-size: 12px; color: #9aa5ce; }
-.field-hint { font-size: 11px; color: #565f89; }
+.field-label { font-size: 12px; color: var(--text-dim); }
+.field-hint { font-size: 11px; color: var(--muted); }
 
 .setting-label.strong { font-weight: 600; }
 
@@ -167,3 +229,8 @@ button.primary { background: #3b4261; color: #7aa2f7; }
 .flex-2 { flex: 2; }
 
 .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+
+/* List-entry layout (history/bookmarks/downloads item templates) - these
+   were inline style="" attributes, which the pages' CSP silently drops. */
+.entry-main { overflow: hidden; }
+.entry-side { display: flex; align-items: center; gap: 10px; }

@@ -19,11 +19,11 @@ function renderList(bookmarks) {
     const li = document.createElement('li');
     const date = new Date(bookmark.createdAt).toLocaleDateString();
     li.innerHTML = `
-      <div style="overflow:hidden">
+      <div class="entry-main">
         <div class="entry-title">${escapeHtml(bookmark.title)}</div>
         <div class="entry-url">${escapeHtml(bookmark.url)}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="entry-side">
         <span class="entry-time">${date}</span>
         <span class="entry-remove" data-id="${bookmark.id}">&times;</span>
       </div>

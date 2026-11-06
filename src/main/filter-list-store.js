@@ -12,6 +12,85 @@ const DEFAULT_LISTS = [
 
 const MAX_CSS_SELECTOR_LENGTH = 300;
 
+// Maps Adblock Plus resource-type filter options to Electron's webRequest
+// resourceType values (see OnBeforeRequestListenerDetails in electron.d.ts),
+// including the common uBlock Origin aliases real lists use (`xhr`, `frame`,
+// `beacon`). `$document` matches only the top-level page load itself;
+// `$all` (see ALL_OPTION_TYPES) matches everything including it.
+const RESOURCE_TYPE_OPTIONS = {
+  document: 'mainFrame',
+  subdocument: 'subFrame',
+  frame: 'subFrame',
+  stylesheet: 'stylesheet',
+  script: 'script',
+  image: 'image',
+  font: 'font',
+  object: 'object',
+  'object-subrequest': 'object',
+  xmlhttprequest: 'xhr',
+  xhr: 'xhr',
+  ping: 'ping',
+  beacon: 'ping',
+  media: 'media',
+  websocket: 'webSocket',
+  other: 'other',
+};
+
+// Every Electron resourceType value, for expanding `$all` (`cspReport` is
+// browser-generated noise with no ABP counterpart - adblock.js buckets it
+// with `$other` at match time).
+const ALL_OPTION_TYPES = [
+  'mainFrame', 'subFrame', 'stylesheet', 'script', 'image', 'font',
+  'object', 'xhr', 'ping', 'cspReport', 'media', 'webSocket', 'other',
+];
+
+/**
+ * Parses one rule's $-options into a serializable scope object:
+ * `{ thirdParty, firstParty, domains: { inc, exc } | null, types: { inc, exc } | null }`.
+ * Only options Dago enforces are recognized (see the file doc comment);
+ * everything else is ignored. Recognizing MORE scoping only ever narrows
+ * rules (fewer blocks), never widens them - the breakage-safe direction.
+ */
+function parseFilterOptions(optionsStr) {
+  const opts = { thirdParty: false, firstParty: false, domains: null, types: null };
+  if (!optionsStr) return opts;
+  let domainInc = null;
+  let domainExc = null;
+  let typeInc = null;
+  let typeExc = null;
+  for (const rawToken of optionsStr.split(',')) {
+    const token = rawToken.trim();
+    if (!token) continue;
+    if (token === 'third-party' || token === '3p') {
+      opts.thirdParty = true;
+    } else if (token === '~third-party' || token === '~3p' || token === 'first-party' || token === '1p') {
+      opts.firstParty = true;
+    } else if (token === 'all') {
+      typeInc = new Set(ALL_OPTION_TYPES);
+    } else if (token === '~all') {
+      typeExc = new Set(ALL_OPTION_TYPES);
+    } else if (token.startsWith('domain=')) {
+      for (const rawDomain of token.slice('domain='.length).split('|')) {
+        const d = rawDomain.trim().toLowerCase();
+        if (!d) continue;
+        if (d.startsWith('~')) {
+          if (d.length > 1) (domainExc ??= new Set()).add(d.slice(1));
+        } else {
+          (domainInc ??= new Set()).add(d);
+        }
+      }
+    } else if (token.startsWith('~') && RESOURCE_TYPE_OPTIONS[token.slice(1)]) {
+      (typeExc ??= new Set()).add(RESOURCE_TYPE_OPTIONS[token.slice(1)]);
+    } else if (RESOURCE_TYPE_OPTIONS[token]) {
+      (typeInc ??= new Set()).add(RESOURCE_TYPE_OPTIONS[token]);
+    }
+    // else: unrecognized/unsupported option - ignored (see file doc comment).
+  }
+  if (domainInc || domainExc) opts.domains = { inc: [...(domainInc || [])], exc: [...(domainExc || [])] };
+  if (typeInc || typeExc) opts.types = { inc: [...(typeInc || [])], exc: [...(typeExc || [])] };
+  return opts;
+}
+
 /**
  * Parses a safe, bounded subset of Adblock Plus filter syntax:
  *  - plain domain-blocking rules (`||domain.tld^`) and their exceptions
@@ -21,6 +100,12 @@ const MAX_CSS_SELECTOR_LENGTH = 300;
  *    these with sequential `String.prototype.indexOf` scanning rather than
  *    RegExp, specifically to stay immune to catastrophic backtracking
  *  - basic element-hiding/cosmetic rules (`domain.com##selector`, `##selector`)
+ *  - request scoping options: `$third-party`/`$~third-party` (first-party),
+ *    `$domain=` (with `~` exclusions), and resource-type options (`$script`,
+ *    `$image`, `$stylesheet`, `$xmlhttprequest`, `$subdocument`, `$font`,
+ *    `$media`, `$object`, `$ping`, `$websocket`, `$document`, `$other`,
+ *    `$all`, each also negatable as `$~script` etc.) - see
+ *    parseFilterOptions, enforced by adblock.js's ruleApplies()
  *
  * Deliberately NOT supported: raw `/regex/` filters. Compiling and running
  * arbitrary regex handed to us by a (possibly compromised or malicious)
@@ -29,16 +114,13 @@ const MAX_CSS_SELECTOR_LENGTH = 300;
  * version of the glob matcher used RegExp internally instead of indexOf and
  * had this exact problem despite being built only from escaped literals - a
  * ~30-wildcard pattern took over two minutes to fail a single match. The
- * indexOf-based matcher replaced it for that reason.) Almost all filter
- * options (`$script`, `$xmlhttprequest`, `$domain=`, etc.) are still stripped
- * and ignored - only address matching, not full request-type matching, is
- * implemented. The one option that IS read is `$third-party`: EasyList/
- * EasyPrivacy scope most of their rules with it specifically so they only
- * ever match embedded ads/trackers, never a site's own first-party content,
- * and dropping that distinction entirely turned out to make a full
- * subscription block sites' own pages/assets outright (see SECURITY.md/
- * ROADMAP.md) - so that one flag is captured and carried through to
- * adblock.js's isBlocked() rather than discarded with the rest.
+ * indexOf-based matcher replaced it for that reason.) Also still ignored:
+ * cosmetic-behavior options (`$elemhide`, `$generichide`, `$genericblock`),
+ * response-modifying options (`$csp=`, `$redirect=`, `$rewrite=`,
+ * `$removeparam=`, `$header=`), `$popup`/`$popunder` (popup policy is the
+ * opener allow-list in popup-store.js, not filter lists), and `$match-case`
+ * (address matching stays case-sensitive for paths - a known recall gap,
+ * noted for follow-up, not silently half-implemented here).
  */
 function parseFilterList(text) {
   const blocked = [];
@@ -75,19 +157,17 @@ function parseFilterList(text) {
     const body = isException ? line.slice(2) : line;
 
     // Split off filter options (anything from the first unescaped '$'
-    // onward). Only `third-party` is read out of them - see doc comment;
-    // everything else in the options list is still discarded.
+    // onward) into a scope object - see parseFilterOptions.
     const dollarIdx = body.indexOf('$');
     const addressPattern = dollarIdx === -1 ? body : body.slice(0, dollarIdx);
-    const options = dollarIdx === -1 ? '' : body.slice(dollarIdx + 1);
-    const thirdParty = options.split(',').map((o) => o.trim()).includes('third-party');
+    const opts = parseFilterOptions(dollarIdx === -1 ? '' : body.slice(dollarIdx + 1));
     if (!addressPattern) continue;
 
     const domainOnlyMatch = addressPattern.match(/^\|\|([a-zA-Z0-9.-]+)\^$/);
     if (domainOnlyMatch) {
       const domain = domainOnlyMatch[1].toLowerCase();
-      if (isException) allowed.push({ domain, thirdParty });
-      else blocked.push({ domain, thirdParty });
+      if (isException) allowed.push({ domain, ...opts });
+      else blocked.push({ domain, ...opts });
       continue;
     }
 
@@ -96,8 +176,8 @@ function parseFilterList(text) {
     // against the full request URL (see compileGlobPattern; a pattern with
     // no anchors or wildcards is just an unanchored literal substring
     // search, which is exactly what a bare ABP address rule means).
-    if (isException) allowedPatterns.push({ pattern: addressPattern, thirdParty });
-    else blockedPatterns.push({ pattern: addressPattern, thirdParty });
+    if (isException) allowedPatterns.push({ pattern: addressPattern, ...opts });
+    else blockedPatterns.push({ pattern: addressPattern, ...opts });
   }
 
   return { blocked, allowed, blockedPatterns, allowedPatterns, cosmeticRules };

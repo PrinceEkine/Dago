@@ -8,6 +8,26 @@ contextBridge.exposeInMainWorld('dago', {
     getPlatform: () => ipcRenderer.invoke('app:get-platform'),
   },
 
+  theme: {
+    get: () => ipcRenderer.invoke('theme:get'),
+    set: (setting) => ipcRenderer.invoke('theme:set', setting),
+    onChanged: (callback) => {
+      ipcRenderer.on('theme:changed', (event, state) => callback(state));
+    },
+  },
+
+  popups: {
+    list: () => ipcRenderer.invoke('popups:list'),
+    allowSite: (openerUrl) => ipcRenderer.invoke('popups:allow-site', openerUrl),
+    remove: (id) => ipcRenderer.invoke('popups:remove', id),
+    onBlocked: (callback) => {
+      ipcRenderer.on('popups:blocked', (event, info) => callback(info));
+    },
+    onOpenInTab: (callback) => {
+      ipcRenderer.on('popups:open-in-tab', (event, { url }) => callback(url));
+    },
+  },
+
   windowControls: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximizeToggle: () => ipcRenderer.invoke('window:maximize-toggle'),
@@ -15,6 +35,11 @@ contextBridge.exposeInMainWorld('dago', {
     isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
     onMaximizeChanged: (callback) => {
       ipcRenderer.on('window:maximize-changed', (event, isMaximized) => callback(isMaximized));
+    },
+    toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
+    isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
+    onFullscreenChanged: (callback) => {
+      ipcRenderer.on('window:fullscreen-changed', (event, isFullscreen) => callback(isFullscreen));
     },
   },
 

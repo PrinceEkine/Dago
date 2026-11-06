@@ -74,12 +74,14 @@ doesn't run on mobile:
 |---|---|
 | Tabbed browsing, address bar, navigation | Working |
 | Modern chrome UI (custom title bar, tab favicons, address bar suggestions from bookmarks/history) | Working - see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a verification caveat on the title bar specifically |
+| Fullscreen (F11 from anywhere, video fullscreen fills the screen, chrome auto-hides) | Working |
+| Light/dark/system theme for the browser UI (web content unaffected) | Working (Settings → Appearance) |
 | Configurable search engine | Working (DuckDuckGo, Startpage, Brave Search, or Mojeek by default; add your own https:// URL with a `%s` query placeholder in Settings) |
 | Tor routing with per-tab isolated circuits + "New Identity" | Working (needs a system Tor install *or* a detected Tor Browser install - see below) |
 | Built-in tracker/ad blocking | Working (curated domain list) |
-| EasyList/EasyPrivacy subscriptions | Working, on by default (auto-fetched on first run and kept fresh - disable in Settings if you don't want it). Add any other https:// filter list URL too - domain, path/wildcard, and cosmetic/element-hiding rules; those still require enabling + pressing Update, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's still not implemented |
+| EasyList/EasyPrivacy subscriptions | Working, on by default (auto-fetched on first run and kept fresh - disable in Settings if you don't want it). Add any other https:// filter list URL too - domain, path/wildcard, cosmetic/element-hiding, `$domain=`, and resource-type (`$script`/`$image`/...) rules; those still require enabling + pressing Update, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for what's still not implemented |
 | Fingerprint resistance (canvas/WebGL/timezone/UA, including Client Hints) | Working, best-effort |
-| Popup blocking (blocks `window.open()`-based popups/popunders by default) | Working - trade-off: legitimate popups like OAuth logins are blocked too, see [`docs/ROADMAP.md`](docs/ROADMAP.md) |
+| Popup blocking with per-site allow-list (blocked popups offer one-click allow; allowed popups open as tabs, never windows) | Working |
 | No-camera policy (video calls disabled everywhere) | Working |
 | Screensharing (screen-only, peer-to-peer, room code, up to 8 viewers, quality presets) | Working (needs a signaling server - one-command to self-host) |
 | Optional TURN relay for screensharing | Working (configure in Settings; "force relay" hides both peers' public IPs) |

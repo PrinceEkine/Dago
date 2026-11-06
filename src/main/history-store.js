@@ -5,6 +5,10 @@ const path = require('path');
 
 const MAX_ENTRIES = 20000;
 
+// Background history logging (record()) only schedules a trailing write -
+// see _schedulePersist. Explicit user actions and app quit flush now.
+const PERSIST_DEBOUNCE_MS = 1500;
+
 /**
  * Browsing history is always encrypted at rest using the OS keychain-backed
  * `safeStorage` API (Keychain / DPAPI / libsecret), independent of the user's
@@ -17,6 +21,7 @@ class HistoryStore {
     this.filePath = path.join(userDataDir, 'history.enc');
     this.safeStorage = safeStorage;
     this.entries = this._load();
+    this._persistTimer = null;
   }
 
   _load() {
@@ -37,11 +42,36 @@ class HistoryStore {
     fs.writeFileSync(this.filePath, encrypted);
   }
 
+  _schedulePersist() {
+    if (this._persistTimer) return;
+    this._persistTimer = setTimeout(() => {
+      this._persistTimer = null;
+      this._persist();
+    }, PERSIST_DEBOUNCE_MS);
+    // A pending history write must never hold the process open on its own;
+    // a clean quit always goes through flush() instead.
+    if (typeof this._persistTimer.unref === 'function') this._persistTimer.unref();
+  }
+
+  /** Cancels any scheduled write and persists now. Called on quit and explicit edits. */
+  flush() {
+    if (this._persistTimer) {
+      clearTimeout(this._persistTimer);
+      this._persistTimer = null;
+    }
+    this._persist();
+  }
+
   record(url, title) {
     if (!url || url.startsWith('dago://')) return;
     this.entries.push({ url, title: title || url, timestamp: Date.now() });
     if (this.entries.length > MAX_ENTRIES) this.entries.shift();
-    this._persist();
+    // record() fires on every navigation and title update - encrypting and
+    // rewriting the whole file synchronously each time stalls the main
+    // thread mid-page-load (and grows with history size), so background
+    // logging only schedules a trailing write. Explicit user actions
+    // (clear/remove) and app quit flush immediately instead.
+    this._schedulePersist();
   }
 
   list() {
@@ -50,14 +80,14 @@ class HistoryStore {
 
   clear() {
     this.entries = [];
-    this._persist();
+    this.flush();
   }
 
   removeEntry(index) {
     const reversedIdx = this.entries.length - 1 - index;
     if (reversedIdx >= 0 && reversedIdx < this.entries.length) {
       this.entries.splice(reversedIdx, 1);
-      this._persist();
+      this.flush();
     }
   }
 }

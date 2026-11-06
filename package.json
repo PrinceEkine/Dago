@@ -9,6 +9,7 @@
     "dev": "electron . --dev",
     "signaling-server": "node signaling-server/server.js",
     "fetch-tor-binaries": "node scripts/fetch-tor-binaries.js",
+    "test": "node --test test/adblock.test.js test/popup-store.test.js",
     "dist": "electron-builder"
   },
   "author": "Dago Project Contributors",

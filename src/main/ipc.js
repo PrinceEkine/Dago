@@ -1,6 +1,6 @@
 'use strict';
 
-const { ipcMain, session, app } = require('electron');
+const { ipcMain, session, app, BrowserWindow } = require('electron');
 const crypto = require('crypto');
 const { attachAdblock, getCosmeticRulesForHost, getBlocklistStats, BLOCKED_DOMAINS } = require('./adblock');
 
@@ -26,6 +26,8 @@ function registerIpc({
   bookmarkStore,
   downloadManager,
   searchProviderStore,
+  themeStore,
+  popupStore,
   desktopCapturer,
   setPendingScreenShareSource,
   openUtilityWindow,
@@ -114,6 +116,37 @@ function registerIpc({
   ipcMain.handle('app:get-version', () => app.getVersion());
   ipcMain.handle('app:get-platform', () => process.platform);
 
+  // --- Appearance (light/dark/system theme for Dago's own UI) ---
+
+  function broadcastTheme() {
+    const state = themeStore.get();
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (win.isDestroyed()) continue;
+      win.setBackgroundColor(themeStore.windowBackgroundColor());
+      win.webContents.send('theme:changed', state);
+    }
+  }
+
+  ipcMain.handle('theme:get', () => themeStore.get());
+  ipcMain.handle('theme:set', (event, setting) => {
+    const result = themeStore.set(setting);
+    // Broadcast explicitly rather than relying on nativeTheme's 'updated'
+    // event (which also fires and re-broadcasts the same state - applying
+    // it twice is idempotent), so the UI updates even on platforms where
+    // the event is unreliable for programmatic themeSource changes.
+    if (result.ok) broadcastTheme();
+    return result;
+  });
+  // OS-level appearance changes while following the system theme.
+  themeStore.onResolvedChange(() => broadcastTheme());
+
+  // --- Popup allow-list (popups are blocked by default; see main.js
+  // setWindowOpenHandler for the enforcement side) ---
+
+  ipcMain.handle('popups:list', () => popupStore.list());
+  ipcMain.handle('popups:allow-site', (event, openerUrl) => popupStore.allow(openerUrl));
+  ipcMain.handle('popups:remove', (event, id) => popupStore.remove(id));
+
   // Custom frameless-window controls (see main.js's createWindow - Windows/
   // Linux get frame:false and draw their own minimize/maximize/close;
   // macOS keeps native traffic lights via titleBarStyle and never calls
@@ -131,6 +164,10 @@ function registerIpc({
   });
   ipcMain.handle('window:close', () => { if (isUsableWindow()) mainWindow.close(); });
   ipcMain.handle('window:is-maximized', () => isUsableWindow() && mainWindow.isMaximized());
+  ipcMain.handle('window:toggle-fullscreen', () => {
+    if (isUsableWindow()) mainWindow.setFullScreen(!mainWindow.isFullScreen());
+  });
+  ipcMain.handle('window:is-fullscreen', () => isUsableWindow() && mainWindow.isFullScreen());
 
   ipcMain.handle('windows:open', (event, pageName) => {
     const allowed = ['history', 'settings', 'screenshare', 'bookmarks', 'downloads'];

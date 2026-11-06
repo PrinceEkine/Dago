@@ -3,6 +3,24 @@
 const NEW_TAB_URL = 'new-tab.html';
 const DAGO_PAGES = ['history', 'settings', 'screenshare', 'bookmarks', 'downloads'];
 
+// Resolved chrome theme ('light'|'dark'), stamped into new-tab page URLs so
+// the blank page matches the chrome. New-tab pages run inside webviews with
+// no preload bridge, so they can't subscribe to theme changes themselves -
+// the stamp plus the re-stamp loop in the theme subscription below cover it.
+let chromeTheme = 'dark';
+
+function newTabUrl() {
+  return `${NEW_TAB_URL}?dago-theme=${chromeTheme}`;
+}
+
+function isNewTabUrl(url) {
+  if (typeof url !== 'string') return false;
+  // Pre-navigation the webview still holds the relative string we assigned;
+  // post-navigation it holds the resolved file:// URL (with our theme stamp).
+  if (url === NEW_TAB_URL || url === newTabUrl()) return true;
+  return url.startsWith('file:') && url.includes('new-tab.html');
+}
+
 const tabsEl = document.getElementById('tabs');
 const webviewHost = document.getElementById('webview-host');
 const addressBar = document.getElementById('address-bar');
@@ -10,6 +28,9 @@ const addressSuggestionsEl = document.getElementById('address-suggestions');
 const backBtn = document.getElementById('back-btn');
 const forwardBtn = document.getElementById('forward-btn');
 const reloadBtn = document.getElementById('reload-btn');
+const fullscreenBtn = document.getElementById('fullscreen-btn');
+const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
+const popupBtn = document.getElementById('popup-btn');
 const newIdentityBtn = document.getElementById('new-identity-btn');
 const bookmarkBtn = document.getElementById('bookmark-btn');
 const torStatusEl = document.getElementById('tor-status');
@@ -21,7 +42,7 @@ let tabCounter = 0;
 
 function parseAddressInput(input) {
   const trimmed = input.trim();
-  if (!trimmed) return NEW_TAB_URL;
+  if (!trimmed) return newTabUrl();
 
   const dagoMatch = trimmed.match(/^dago:\/\/(\w+)/);
   if (dagoMatch && DAGO_PAGES.includes(dagoMatch[1])) return { dagoPage: dagoMatch[1] };
@@ -85,13 +106,18 @@ async function createTab(initialUrl) {
 
   const webview = document.createElement('webview');
   webview.setAttribute('partition', partition);
-  // Deliberately NOT setting the `allowpopups` attribute here. It is a
-  // boolean attribute: Electron only checks for its *presence*, so the
-  // earlier `allowpopups="false"` was actually ENABLING popups - the exact
-  // opposite of its intent. Leaving it off disables popups at the engine
-  // level, and the main process additionally enforces the block via
-  // setWindowOpenHandler (see main.js), which page content can't bypass.
-  webview.src = initialUrl || NEW_TAB_URL;
+  // `allowpopups` is a presence-checked boolean attribute: ANY value,
+  // including the string "false", ENABLES popups - the earlier
+  // `allowpopups="false"` did the exact opposite of its intent. It is set
+  // here unconditionally because the main process gates every request (see
+  // main.js setWindowOpenHandler): deny by default, allow-listed openers
+  // only, and even those open as Dago tabs rather than native windows.
+  // Do NOT remove this to "harden" popups: without the attribute, Chromium
+  // refuses window-open requests below the app and the main-process
+  // handler never fires at all, which would silently break the allow-list
+  // (OAuth logins included) - see SECURITY.md.
+  webview.setAttribute('allowpopups', '');
+  webview.src = initialUrl || newTabUrl();
   webviewHost.appendChild(webview);
 
   const tab = {
@@ -100,6 +126,7 @@ async function createTab(initialUrl) {
     iconSlot: tabEl.querySelector('.tab-icon-slot'),
     loading: false,
     faviconRequestUrl: null,
+    blockedPopups: [],
   };
   tabs.push(tab);
   setTabIconPlaceholder(tab);
@@ -107,9 +134,11 @@ async function createTab(initialUrl) {
   webview.addEventListener('did-navigate', (e) => {
     tab.url = e.url;
     tab.faviconRequestUrl = null;
+    tab.blockedPopups = [];
     if (tab.id === activeTabId) {
-      addressBar.value = e.url;
+      addressBar.value = isNewTabUrl(e.url) ? '' : e.url;
       updateBookmarkButton();
+      updatePopupButton();
     }
     window.dago.history.record(e.url, tab.title);
     updateNavButtons();
@@ -158,15 +187,16 @@ function activateTab(id) {
   }
   const tab = tabs.find((t) => t.id === id);
   if (tab) {
-    addressBar.value = tab.url === NEW_TAB_URL ? '' : tab.url;
+    addressBar.value = isNewTabUrl(tab.url) ? '' : tab.url;
     updateNavButtons();
     updateBookmarkButton();
+    updatePopupButton();
   }
 }
 
 async function updateBookmarkButton() {
   const tab = getActiveTab();
-  if (!tab || tab.url === NEW_TAB_URL) {
+  if (!tab || isNewTabUrl(tab.url)) {
     bookmarkBtn.innerHTML = DAGO_ICONS.starOutline;
     bookmarkBtn.classList.remove('active');
     return;
@@ -227,9 +257,46 @@ document.getElementById('new-tab-btn').addEventListener('click', () => createTab
 // PIN elsewhere in the app this session - before that, history:list()
 // deliberately returns no entries (see history-store.js/ipc.js), and this
 // dropdown respects that rather than trying to work around it.
+//
+// Bookmarks/history are fetched once per address-bar focus (then refreshed
+// in the background only once stale), and filtered locally per keystroke -
+// pushing the full history list (up to 20k entries) over IPC on EVERY
+// keystroke made typing visibly laggy on large histories.
 
 let suggestionItems = [];
 let selectedSuggestionIndex = -1;
+let suggestionCache = { bookmarks: [], historyEntries: [], fetchedAt: 0 };
+const SUGGESTION_CACHE_TTL_MS = 30000;
+
+async function refreshSuggestionCache() {
+  const [bookmarks, historyResult] = await Promise.all([
+    window.dago.bookmarks.list(),
+    window.dago.history.list(),
+  ]);
+  suggestionCache = {
+    bookmarks,
+    historyEntries: (historyResult && historyResult.entries) || [],
+    fetchedAt: Date.now(),
+  };
+}
+
+function filterSuggestions(query) {
+  const seen = new Set();
+  const matches = [];
+  outer:
+  for (const source of [suggestionCache.bookmarks, suggestionCache.historyEntries]) {
+    for (const entry of source) {
+      if (matches.length >= 8) break outer;
+      if (seen.has(entry.url)) continue;
+      const haystack = `${entry.title || ''} ${entry.url}`.toLowerCase();
+      if (haystack.includes(query)) {
+        seen.add(entry.url);
+        matches.push(entry);
+      }
+    }
+  }
+  return matches;
+}
 
 function hideSuggestions() {
   addressSuggestionsEl.classList.add('hidden');
@@ -274,38 +341,29 @@ function updateSelectedSuggestion() {
   if (selectedSuggestionIndex >= 0) addressBar.value = suggestionItems[selectedSuggestionIndex].url;
 }
 
-async function updateSuggestions() {
+function updateSuggestions() {
   const query = addressBar.value.trim().toLowerCase();
   if (!query) {
     hideSuggestions();
     return;
   }
-  const [bookmarks, historyResult] = await Promise.all([
-    window.dago.bookmarks.list(),
-    window.dago.history.list(),
-  ]);
-  const historyEntries = (historyResult && historyResult.entries) || [];
-
-  const seen = new Set();
-  const matches = [];
-  outer:
-  for (const source of [bookmarks, historyEntries]) {
-    for (const entry of source) {
-      if (matches.length >= 8) break outer;
-      if (seen.has(entry.url)) continue;
-      const haystack = `${entry.title || ''} ${entry.url}`.toLowerCase();
-      if (haystack.includes(query)) {
-        seen.add(entry.url);
-        matches.push(entry);
+  renderSuggestions(filterSuggestions(query));
+  // Refresh stale data in the background (a bookmark added, or history
+  // unlocked, since the cache was fetched); re-render only if the query
+  // hasn't moved on while the fetch was in flight.
+  if (Date.now() - suggestionCache.fetchedAt > SUGGESTION_CACHE_TTL_MS) {
+    refreshSuggestionCache().then(() => {
+      if (addressBar.value.trim().toLowerCase() === query) {
+        renderSuggestions(filterSuggestions(query));
       }
-    }
+    });
   }
-  // The query may have changed while these requests were in flight.
-  if (addressBar.value.trim().toLowerCase() === query) renderSuggestions(matches);
 }
 
 addressBar.addEventListener('input', updateSuggestions);
-addressBar.addEventListener('focus', updateSuggestions);
+addressBar.addEventListener('focus', () => {
+  refreshSuggestionCache().then(updateSuggestions);
+});
 addressBar.addEventListener('blur', () => setTimeout(hideSuggestions, 100));
 
 addressBar.addEventListener('keydown', (e) => {
@@ -354,7 +412,7 @@ document.getElementById('downloads-btn').addEventListener('click', () => window.
 
 bookmarkBtn.addEventListener('click', async () => {
   const tab = getActiveTab();
-  if (!tab || tab.url === NEW_TAB_URL) return;
+  if (!tab || isNewTabUrl(tab.url)) return;
   const bookmarked = await window.dago.bookmarks.isBookmarked(tab.url);
   if (bookmarked) await window.dago.bookmarks.removeByUrl(tab.url);
   else await window.dago.bookmarks.add(tab.url, tab.title);
@@ -413,6 +471,106 @@ async function setupWindowControls() {
 }
 
 setupWindowControls();
+
+// --- Fullscreen ---
+// F11 itself is handled in the main process (before-input-event), which is
+// the only place that sees the key when focus is inside tab content - the
+// renderer just offers the toolbar button / exit pill and hides the chrome
+// while fullscreen, whether it was entered via F11 or a video's fullscreen
+// button (see main.js's enter-html-full-screen handling).
+fullscreenBtn.addEventListener('click', () => window.dago.windowControls.toggleFullscreen());
+exitFullscreenBtn.addEventListener('click', () => window.dago.windowControls.toggleFullscreen());
+
+function applyFullscreen(isFullscreen) {
+  document.body.classList.toggle('fullscreen', isFullscreen);
+}
+
+window.dago.windowControls.isFullscreen().then(applyFullscreen);
+window.dago.windowControls.onFullscreenChanged(applyFullscreen);
+
+// --- Theme (new-tab pages only - the chrome itself is themed by
+// theme-init.js, which runs before this script) ---
+window.dago.theme.get().then(({ resolved }) => {
+  chromeTheme = resolved;
+});
+window.dago.theme.onChanged(({ resolved }) => {
+  if (resolved === chromeTheme) return;
+  chromeTheme = resolved;
+  // New-tab pages have no bridge to hear this themselves, so re-stamp the
+  // open ones. Only blank pages are touched - real web content is neither
+  // themed nor reloaded here.
+  for (const tab of tabs) {
+    if (isNewTabUrl(tab.url)) tab.webview.src = newTabUrl();
+  }
+});
+
+// --- Blocked popups ---
+// The main process blocks popups by default and reports each one here with
+// the webview's contents id, which is how the event reaches the right tab
+// (the active tab may have moved on since). The toolbar button appears only
+// while the active tab has blocked popups; one click offers a one-click
+// allow for the opener's site and opens the latest blocked URL.
+
+const MAX_BLOCKED_POPUPS_PER_TAB = 5;
+
+function updatePopupButton() {
+  const tab = getActiveTab();
+  const count = tab ? tab.blockedPopups.length : 0;
+  popupBtn.classList.toggle('hidden', count === 0);
+  if (count > 0) {
+    popupBtn.title = `Popups blocked from ${openerHostname(tab.blockedPopups[tab.blockedPopups.length - 1].openerUrl)} - click to allow`;
+  }
+}
+
+function openerHostname(openerUrl) {
+  try {
+    return new URL(openerUrl).hostname;
+  } catch (err) {
+    return 'this site';
+  }
+}
+
+window.dago.popups.onBlocked(({ contentsId, openerUrl, popupUrl }) => {
+  const tab = tabs.find((t) => {
+    try {
+      return t.webview.getWebContentsId() === contentsId;
+    } catch (err) {
+      return false;
+    }
+  });
+  if (!tab) return;
+  tab.blockedPopups.push({ openerUrl, popupUrl });
+  if (tab.blockedPopups.length > MAX_BLOCKED_POPUPS_PER_TAB) {
+    tab.blockedPopups.splice(0, tab.blockedPopups.length - MAX_BLOCKED_POPUPS_PER_TAB);
+  }
+  if (tab.id === activeTabId) updatePopupButton();
+});
+
+window.dago.popups.onOpenInTab((url) => {
+  createTab(url);
+});
+
+popupBtn.addEventListener('click', async () => {
+  const tab = getActiveTab();
+  if (!tab || tab.blockedPopups.length === 0) return;
+  const latest = tab.blockedPopups[tab.blockedPopups.length - 1];
+  const host = openerHostname(latest.openerUrl);
+  const count = tab.blockedPopups.length;
+  const ok = confirm(
+    `${host} tried to open ${count === 1 ? 'a popup' : `${count} popups`} ` +
+    `(latest: ${latest.popupUrl}).\n\nAllow popups from ${host}? They will open as new tabs. ` +
+    `You can revoke this in Settings.`
+  );
+  if (!ok) return;
+  const result = await window.dago.popups.allowSite(latest.openerUrl);
+  if (!result.ok) {
+    alert(`Could not allow popups: ${result.reason}`);
+    return;
+  }
+  tab.blockedPopups = [];
+  updatePopupButton();
+  createTab(latest.popupUrl);
+});
 
 // --- Boot ---
 createTab();

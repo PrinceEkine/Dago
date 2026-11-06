@@ -122,6 +122,53 @@ the README).
       story and the real architectural differences from desktop (one
       shared Tor circuit instead of per-tab isolation, shared cookie
       storage across tabs, no screensharing yet).
+- [x] Page-load and startup performance: request blocking was a linear
+      scan of every filter rule on every request (~16ms each at EasyList
+      scale, i.e. seconds per page load) - now a domain index plus an
+      Aho-Corasick automaton over substring rules (~0.02ms, ~700x
+      faster), verified behavior-identical against the old matcher on
+      25k randomized cases and pinned by a committed `npm test` suite
+      (`test/adblock.test.js`); history logging no longer
+      encrypts/rewrites the whole file synchronously mid-page-load
+      (debounced trailing write, flushed on quit); address suggestions
+      fetch once per focus and filter locally instead of pushing 20k
+      history entries over IPC per keystroke; the window is created
+      before the heavy synchronous store setup so Chromium renders
+      while it runs
+- [x] Real fullscreen: F11 works from anywhere including inside tab
+      content (main-process `before-input-event`), a video's fullscreen
+      button promotes the whole window (not just the webview area), the
+      chrome auto-hides with a floating exit pill, and video-owned
+      fullscreen doesn't steal an F11 fullscreen on exit
+- [x] Light/dark/system theme for the browser UI (Settings →
+      Appearance): CSS-variable stylesheets with a flash-free URL-stamp
+      + live broadcast mechanism; web content is never themed. Also
+      fixed along the way: history/bookmarks/downloads list templates
+      still used inline `style=""` attributes the pages' own CSP
+      silently drops (the earlier cleanup missed these three files) -
+      replaced with real classes
+- [x] Per-site popup allow-list: the blanket `window.open()` block no longer
+      breaks legitimate uses (OAuth logins, payment flows) with no recourse
+      - a blocked-popup toolbar icon offers one-click allow per site
+      (managed in Settings), and allowed popups open as normal Dago tabs,
+      never native windows (which would escape tab isolation). Found along
+      the way: the main-process `setWindowOpenHandler` deny this project
+      described as its enforcement layer never actually fired - for webview
+      guests Chromium only consults it when the tag carries `allowpopups`
+      at all (confirmed via Electron's documented behavior - see
+      SECURITY.md) - so the attribute is now set and the handler is the
+      real, sole gatekeeper, deny-by-default
+- [x] Remaining Adblock Plus filter options (`$domain=` scoping, resource
+      types, `$~third-party`): rules like `||ads.example^$script,
+      third-party,domain=shop.example` now scope correctly instead of
+      applying to every request unconditionally - same breakage class as
+      the `$third-party` fix, which ignoring these options reproduced for
+      type- and page-scoped rules. Old on-disk caches (which only stored
+      `$third-party`) keep working via normalization; behavior for
+      unscoped rules verified identical to the previous matcher on 25k
+      randomized cases. Still out (documented in
+      `filter-list-store.js`): raw `/regex/` filters, `$csp=`/
+      `$redirect=`-style response modifiers, and `$match-case`
 
 ## Next
 
@@ -132,14 +179,12 @@ the README).
 - [ ] Actually bundle verified Tor binaries for desktop (the groundwork
       above exists; someone with network access + a PGP verification step
       needs to run it) - Android already gets this for free via tor-android
-- [ ] Per-site popup allow-list, so the blanket `window.open()` block above
-      doesn't also break legitimate uses (OAuth login popups, "open in new
-      window" buttons) - today it's all-or-nothing
-- [ ] Remaining Adblock Plus filter options: `$third-party` is implemented
-      (see "Now" above); resource-type options (`$script`, `$image`, `$xhr`,
-      etc.) and `$domain=` scoping are still ignored, and a safe way to
-      support at least some of what raw `/regex/` filters express without
-      reintroducing ReDoS risk remains unsolved
+- [ ] Raw `/regex/` filter support: `$third-party`, resource-type options,
+      and `$domain=` are all implemented (see "Now"); a safe way to support
+      at least some of what raw `/regex/` filters express without
+      reintroducing ReDoS risk remains unsolved (see
+      `src/main/adblock.js`'s doc comments for why they're still rejected
+      outright)
 - [ ] Browser extension support (a WebExtensions-compatible API surface) -
       not attempted yet; this is a much larger undertaking than the other
       "Next" items, closer in scope to a second browser feature

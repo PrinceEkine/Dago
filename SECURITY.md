@@ -98,6 +98,23 @@ an independent audit by people with no stake in the outcome.
   not a live re-test against the real sites, since this dev environment has
   no route to them either.
 
+- **Found while building the popup allow-list: the main-process popup
+  deny never fired.** Since the original popup fix, this project described
+  `setWindowOpenHandler` as the enforcement layer denying all
+  `window.open()` from tab content - but for `<webview>` guests, Chromium
+  only consults that handler when the tag carries the `allowpopups`
+  attribute *at all*, and the fix had *removed* the attribute. The handler
+  was dead code; the attribute's absence did 100% of the blocking (which is
+  why the field report stayed fixed). Harmless while the policy was
+  blanket-deny - but it would have silently broken the allow-list, which
+  needs the handler to actually run. The attribute is now set and the
+  handler is the real gatekeeper (deny by default, allowed openers open as
+  tabs, never native windows). Verified against Electron's documented
+  behavior and independent reports of the same interaction - this
+  environment still can't launch Electron to watch it fire, the same
+  verification gap disclosed above, so treat the live end-to-end path as
+  maintainer-to-confirm.
+
 ## Android app caveat
 
 `android/`'s shared `:logic` module ports the same glob-matching and

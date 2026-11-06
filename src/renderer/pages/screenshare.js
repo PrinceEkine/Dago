@@ -117,8 +117,8 @@ async function loadSources() {
     item.innerHTML = `<img src="${source.thumbnailDataUrl}" alt="" /><span>${escapeHtml(source.name)}</span>`;
     item.addEventListener('click', () => {
       selectedSourceId = source.id;
-      sourceListEl.querySelectorAll('.source-item').forEach((el) => el.style.background = '');
-      item.style.background = '#3b4261';
+      sourceListEl.querySelectorAll('.source-item').forEach((el) => el.classList.remove('selected'));
+      item.classList.add('selected');
     });
     sourceListEl.appendChild(item);
   });

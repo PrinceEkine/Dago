@@ -5,6 +5,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
   <title>Dago - Settings</title>
   <link rel="stylesheet" href="pages.css" />
+  <script src="../theme-init.js"></script>
 </head>
 <body>
   <div class="panel">
@@ -21,6 +22,18 @@
       <div>
         <div class="setting-label">Tracker &amp; ad blocking</div>
         <div class="setting-desc" id="adblock-desc">Loading…</div>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Appearance</div>
+        <div class="setting-desc">Follow your system theme, or force light or dark.</div>
+      </div>
+      <div class="theme-options">
+        <label class="radio-label"><input type="radio" name="theme" value="system" /> System</label>
+        <label class="radio-label"><input type="radio" name="theme" value="light" /> Light</label>
+        <label class="radio-label"><input type="radio" name="theme" value="dark" /> Dark</label>
       </div>
     </div>
 
@@ -57,6 +70,18 @@
         <button id="add-list-btn">Add</button>
       </div>
       <p id="filter-list-error" class="error"></p>
+    </div>
+
+    <div class="mt-20">
+      <div class="setting-label strong">Popup permissions</div>
+      <p class="mt-4">
+        Dago blocks popups from every site by default. When a site you trust
+        needs them (login windows, payment flows), click the blocked-popup
+        icon in the toolbar to allow that site - allowed popups always open
+        as normal tabs, never separate windows.
+      </p>
+      <ul id="popup-list" class="plain-list"></ul>
+      <p id="popup-empty" class="field-hint">No sites allowed - popups are blocked everywhere.</p>
     </div>
 
     <div class="mt-20">

@@ -18,6 +18,22 @@ window.dago.adblock.stats().then(({ domainCount }) => {
   adblockDesc.textContent = `Enabled - blocking ${domainCount} known ad/tracker domains by default.`;
 });
 
+// --- Appearance ---
+
+const themeRadios = document.querySelectorAll('input[name="theme"]');
+
+window.dago.theme.get().then(({ setting }) => {
+  themeRadios.forEach((radio) => {
+    radio.checked = radio.value === setting;
+  });
+});
+
+themeRadios.forEach((radio) => {
+  radio.addEventListener('change', () => {
+    if (radio.checked) window.dago.theme.set(radio.value);
+  });
+});
+
 // --- Search engine ---
 
 const searchProviderEl = document.getElementById('search-provider-list');
@@ -147,6 +163,36 @@ updateAllBtn.addEventListener('click', async () => {
 
 refreshFilterLists();
 
+// --- Popup permissions ---
+
+const popupListEl = document.getElementById('popup-list');
+const popupEmptyEl = document.getElementById('popup-empty');
+
+async function refreshPopups() {
+  const entries = await window.dago.popups.list();
+  popupListEl.innerHTML = '';
+  popupEmptyEl.classList.toggle('hidden', entries.length > 0);
+  entries.forEach((entry) => {
+    const li = document.createElement('li');
+    li.className = 'filter-list-item';
+    const added = entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() : '';
+    li.innerHTML = `
+      <span class="fl-name">${escapeHtml(entry.hostname)}<br><span class="fl-meta">allowed ${added}</span></span>
+      <button class="popup-remove danger" data-id="${entry.id}">Remove</button>
+    `;
+    popupListEl.appendChild(li);
+  });
+
+  popupListEl.querySelectorAll('.popup-remove').forEach((el) => {
+    el.addEventListener('click', async (e) => {
+      await window.dago.popups.remove(e.target.getAttribute('data-id'));
+      refreshPopups();
+    });
+  });
+}
+
+refreshPopups();
+
 // --- Screenshare TURN relay ---
 
 const turnEnabled = document.getElementById('turn-enabled');
@@ -180,7 +226,7 @@ saveTurnBtn.addEventListener('click', async () => {
   });
   turnCredential.value = '';
   turnStatus.textContent = 'Saved.';
-  turnStatus.style.color = '#9ece6a';
+  turnStatus.className = 'success';
 });
 
 loadTurnConfig();

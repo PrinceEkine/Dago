@@ -30,15 +30,18 @@ protect you identically.
 - **Being pulled into an unwanted video/voice call** - the camera can't be
   activated by any site or script, in this browser, by design.
 - **Popup/popunder ad redirects** - `window.open()` from tab content is
-  denied in the main process (`setWindowOpenHandler`), where a page can't
-  interfere with it. Worth being honest about the history here: two earlier
-  attempts at this block didn't actually work - `allowpopups="false"` on the
-  webview tag *enables* popups (it's a presence-checked boolean attribute),
-  and a `new-window` event listener never fired because that event no longer
-  exists in modern Electron. Both are disclosed in `SECURITY.md`. The block
-  is a real trade-off, not free: legitimate popups (OAuth login windows,
-  "open in new window" buttons) are blocked too. There's no per-site
-  allow-list yet - see `docs/ROADMAP.md`.
+  gated in the main process (`setWindowOpenHandler`), where a page can't
+  interfere with it: denied by default, with a per-site allow-list for
+  legitimate uses (OAuth login windows, payment flows) via a one-click
+  toolbar allow, managed in Settings. Allowed popups open as normal tabs,
+  never native windows. Worth being honest about the history here: three
+  earlier attempts at this block didn't actually work - `allowpopups="false"`
+  on the webview tag *enables* popups (it's a presence-checked boolean
+  attribute), a `new-window` event listener never fired because that event
+  no longer exists in modern Electron, and the `setWindowOpenHandler` deny
+  itself never fired either, because that handler is only consulted for
+  webview guests carrying the `allowpopups` attribute at all. All three are
+  disclosed in `SECURITY.md`.
 - **WebRTC IP leaks in tabs** - WebRTC traffic bypasses the SOCKS proxy tabs
   use for Tor, so without protection a page script could learn your real IP
   with a STUN request even while "Tor: connected" is showing (ad/tracking

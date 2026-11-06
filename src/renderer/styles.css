@@ -1,13 +1,81 @@
 * { box-sizing: border-box; }
 
+/* Theme variables: :root is the dark theme (the app's original look - also
+   what renders before theme-init.js runs, so dark users never flash), and
+   [data-theme="light"] overrides it. Set by theme-init.js from the
+   ?dago-theme= URL stamp (see src/main/theme-store.js). */
+:root {
+  --bg: #1a1b26;
+  --chrome-bg: #16161e;
+  --chrome-border: #292e42;
+  --tab-bg: #24283b;
+  --tab-bg-hover: #292e42;
+  --tab-bg-active: #292e42;
+  --tab-text: #a9b1d6;
+  --tab-text-active: #c0caf5;
+  --text: #c0caf5;
+  --text-dim: #a9b1d6;
+  --muted: #565f89;
+  --pill-text: #9aa5ce;
+  --accent: #7aa2f7;
+  --field-bg: #1f2335;
+  --field-border: #3b4261;
+  --surface-hover: #292e42;
+  --placeholder-bg: #414868;
+  --spinner-track: #414868;
+  --close-hover-bg: #414868;
+  --win-close-hover-bg: #db4b4b;
+  --win-close-hover-text: #ffffff;
+  --star: #e0af68;
+  --status-on-bg: #2b3a2b;
+  --status-on-text: #9ece6a;
+  --status-off-bg: #3a2b2b;
+  --status-off-text: #f7768e;
+  --status-unknown-bg: #3a3a2b;
+  --status-unknown-text: #e0af68;
+  --overlay-shadow: rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] {
+  --bg: #e6e7ed;
+  --chrome-bg: #dcdde5;
+  --chrome-border: #c2c5d2;
+  --tab-bg: #cfd2dd;
+  --tab-bg-hover: #c2c6d5;
+  --tab-bg-active: #eef0f5;
+  --tab-text: #5a6285;
+  --tab-text-active: #2e3350;
+  --text: #2e3350;
+  --text-dim: #5a6285;
+  --muted: #8b91ad;
+  --pill-text: #5a6285;
+  --accent: #2f5fd0;
+  --field-bg: #f2f3f7;
+  --field-border: #b9bdd0;
+  --surface-hover: #d4d7e2;
+  --placeholder-bg: #b9bdd0;
+  --spinner-track: #b9bdd0;
+  --close-hover-bg: #b9bdd0;
+  --win-close-hover-bg: #db4b4b;
+  --win-close-hover-text: #ffffff;
+  --star: #96690f;
+  --status-on-bg: #d2e7c8;
+  --status-on-text: #2c7a33;
+  --status-off-bg: #f2ccd2;
+  --status-off-text: #b02a3c;
+  --status-unknown-bg: #eee0bd;
+  --status-unknown-text: #8a6a14;
+  --overlay-shadow: rgba(46, 51, 80, 0.18);
+}
+
 .hidden { display: none !important; }
 
 html, body {
   margin: 0;
   height: 100%;
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: #1a1b26;
-  color: #c0caf5;
+  background: var(--bg);
+  color: var(--text);
   overflow: hidden;
 }
 
@@ -18,8 +86,43 @@ body {
 
 #chrome {
   flex: 0 0 auto;
-  background: #16161e;
-  border-bottom: 1px solid #292e42;
+  background: var(--chrome-bg);
+  border-bottom: 1px solid var(--chrome-border);
+}
+
+/* Fullscreen (F11 or a video's fullscreen button): the whole chrome -
+   tab strip, toolbar, status bar - hides so tab content owns the screen.
+   Toggled by renderer.js on window:fullscreen-changed. */
+body.fullscreen #chrome {
+  display: none;
+}
+
+#exit-fullscreen-btn {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: var(--field-bg);
+  color: var(--text-dim);
+  border: 1px solid var(--field-border);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--overlay-shadow);
+  opacity: 0.85;
+}
+
+body.fullscreen #exit-fullscreen-btn {
+  display: block;
+}
+
+#exit-fullscreen-btn:hover {
+  opacity: 1;
+  color: var(--text);
 }
 
 #tabstrip {
@@ -57,8 +160,8 @@ body {
 }
 
 #win-close-btn:hover {
-  background: #db4b4b;
-  color: #ffffff;
+  background: var(--win-close-hover-bg);
+  color: var(--win-close-hover-text);
 }
 
 .tab {
@@ -67,8 +170,8 @@ body {
   gap: 6px;
   padding: 6px 10px;
   border-radius: 8px 8px 0 0;
-  background: #24283b;
-  color: #a9b1d6;
+  background: var(--tab-bg);
+  color: var(--tab-text);
   font-size: 12px;
   max-width: 200px;
   cursor: pointer;
@@ -79,13 +182,13 @@ body {
 }
 
 .tab:hover {
-  background: #292e42;
+  background: var(--tab-bg-hover);
 }
 
 .tab.active {
-  background: #292e42;
-  color: #c0caf5;
-  box-shadow: inset 0 2px 0 #7aa2f7;
+  background: var(--tab-bg-active);
+  color: var(--tab-text-active);
+  box-shadow: inset 0 2px 0 var(--accent);
 }
 
 .tab .tab-favicon {
@@ -101,8 +204,8 @@ body {
   height: 14px;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: #414868;
-  color: #c0caf5;
+  background: var(--placeholder-bg);
+  color: var(--text);
   font-size: 9px;
   font-weight: 600;
   display: flex;
@@ -115,8 +218,8 @@ body {
   width: 12px;
   height: 12px;
   flex: 0 0 auto;
-  border: 2px solid #414868;
-  border-top-color: #7aa2f7;
+  border: 2px solid var(--spinner-track);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: dago-spin 0.7s linear infinite;
 }
@@ -145,7 +248,7 @@ body {
 
 .tab .tab-close:hover {
   opacity: 1 !important;
-  background: #414868;
+  background: var(--close-hover-bg);
 }
 
 .tab .tab-close .icon {
@@ -158,7 +261,7 @@ body {
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: #a9b1d6;
+  color: var(--tab-text);
   border: none;
   border-radius: 6px;
   width: 30px;
@@ -169,8 +272,8 @@ body {
 }
 
 #new-tab-btn:hover, .icon-btn:hover {
-  background: #292e42;
-  color: #c0caf5;
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
 .icon-btn:disabled {
@@ -180,7 +283,7 @@ body {
 }
 
 .icon-btn.active {
-  color: #e0af68;
+  color: var(--star);
 }
 
 .icon {
@@ -207,7 +310,7 @@ body {
   position: absolute;
   left: 10px;
   display: flex;
-  color: #565f89;
+  color: var(--muted);
   pointer-events: none;
 }
 
@@ -218,18 +321,18 @@ body {
 
 #address-bar {
   width: 100%;
-  background: #1f2335;
-  border: 1px solid #3b4261;
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
   border-radius: 8px;
   padding: 8px 12px 8px 30px;
-  color: #c0caf5;
+  color: var(--text);
   font-size: 13px;
   transition: border-color 0.12s ease;
 }
 
 #address-bar:focus {
   outline: none;
-  border-color: #7aa2f7;
+  border-color: var(--accent);
 }
 
 #address-suggestions {
@@ -240,10 +343,10 @@ body {
   margin: 0;
   padding: 4px;
   list-style: none;
-  background: #1f2335;
-  border: 1px solid #3b4261;
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px var(--overlay-shadow);
   z-index: 20;
   max-height: 280px;
   overflow-y: auto;
@@ -257,7 +360,7 @@ body {
   border-radius: 6px;
   font-size: 12px;
   cursor: pointer;
-  color: #c0caf5;
+  color: var(--text);
 }
 
 #address-suggestions li .suggestion-title {
@@ -270,13 +373,13 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #565f89;
+  color: var(--muted);
   font-size: 11px;
 }
 
 #address-suggestions li:hover,
 #address-suggestions li.selected {
-  background: #292e42;
+  background: var(--surface-hover);
 }
 
 #statusbar {
@@ -289,13 +392,13 @@ body {
   font-size: 11px;
   padding: 3px 8px;
   border-radius: 999px;
-  background: #292e42;
-  color: #9aa5ce;
+  background: var(--surface-hover);
+  color: var(--pill-text);
 }
 
-.status-pill.status-on { background: #2b3a2b; color: #9ece6a; }
-.status-pill.status-off { background: #3a2b2b; color: #f7768e; }
-.status-pill.status-unknown { background: #3a3a2b; color: #e0af68; }
+.status-pill.status-on { background: var(--status-on-bg); color: var(--status-on-text); }
+.status-pill.status-off { background: var(--status-off-bg); color: var(--status-off-text); }
+.status-pill.status-unknown { background: var(--status-unknown-bg); color: var(--status-unknown-text); }
 
 #webview-host {
   flex: 1;

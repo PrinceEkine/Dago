@@ -50,11 +50,11 @@ async function refresh() {
     }
 
     li.innerHTML = `
-      <div style="overflow:hidden">
+      <div class="entry-main">
         <div class="entry-title">${escapeHtml(entry.filename)}</div>
         <div class="entry-url">${statusLabel(entry)}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">${actions.join('')}</div>
+      <div class="entry-side">${actions.join('')}</div>
     `;
     downloadListEl.appendChild(li);
   });
